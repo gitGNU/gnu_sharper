@@ -1,0 +1,210 @@
+                               Sharper
+                      Raster data in a filesystem
+
+* Description
+=============
+
+Sharper is a Common Lisp library for storing multidimensional
+multiresolution raster data in hierarchical filesystems.
+
+Sharper uses a popular idea of representing raster data by quadtrees
+(octrees). In fact, Sharper stores pyramids or multiresolution arrays
+in tree nodes. A tree node has the same number of kids as the number
+of elements of in the node's pyramid at its highest resolution.
+
+Since Sharper stores data in a filesystem, many directories and small
+files almost always have a big overhead: the space occupied by data in
+a filesystem is much greater than the real size of the data. However,
+such overhead can be reduced by increasing the size of each pyramid.
+
+So the main idea of Sharper is utilizing the directory tree of a
+filesystem rather than trying to re-implement it for use in one big
+file. Of course, this idea is not new. However, it gives Sharper a
+number of attractive and beneficial features.
+
+** Features
+-----------
+
+   - Small and simple. Despite the fact that the current Sharper
+     implementation is a prototype, it is quite small: less than 1000
+     lines of code. The example program SharperMagick has about 250
+     lines of code. The main development principle is KISS.
+
+   - Nodes are independent from their parents. Nodes can be removed
+     from a data set or copied into it using ordinary operations with
+     files and directories. This makes it easy, for example, to store
+     data on several machines by just mounting subtrees in the data
+     directory tree using NFS.
+
+   - Since nodes are independent, parallel processing becomes an easy
+     and straightforward operation.
+
+   - Sharper does not differentiate between filesystem types. It
+     should work with any filesystem which has directory trees.
+
+   - User-specific data (partially implemented). Sharper does not know
+     what kind of data the nodes store. You can store anything in node
+     directories (except for the directories with numbers as names
+     which are child nodes). However, you must specify a way for
+     Sharper to determine the resolution of the node pyramids when
+     Sharper traverses the directory tree.
+
+   - The number of dimensions is unlimited. Sharper does not restrict
+     your data to be 2D, 3D, 4D, etc. In fact, Sharper does not make
+     any assumptions about dimensionality of the data and does not
+     store it anyhow. You are supposed to be aware of that. When you
+     query a node at a particular location, Sharper determines the
+     dimensionality of the data by the number of axes you have
+     specified in the location query. This affects only the traversing
+     of the directory tree. Therefore, it is possible to have data
+     with different dimensionality within the same directory tree.
+
+** Limitations
+--------------
+
+   - The length of data array along each axis is the same, i.e. for 2D
+     data the array is a square, for 3D it is a cube. This entails a
+     minor problem because Sharper creates only the part of the
+     directory tree which stores data. Therefore, you should know the
+     actual size of your data.
+
+   - Resolutions of the data array are specified by a power of two.
+     The data array at resolutions R-1 is a half-scaled version of the
+     data array at resolutions R. Please note that node directories
+     can store arbitrary user data so if a finer scale of resolution
+     is needed, you can store data scaled to intermediate resolution
+     in the same directory tree.
+
+   - The current implementation of Sharper is a prototype. It is
+     somewhat incomplete and slow. Until now Sharper has only been
+     tested with two Common Lisp implementations: CLISP and SBCL.
+
+* Installation
+==============
+
+Sharper depends on the following libraries:
+
+Alexandria utilities
+http://common-lisp.net/project/alexandria/
+
+CL-FAD library.
+http://weitz.de/cl-fad/
+http://weitz.de/files/cl-fad.tar.gz
+
+Also, the SharperMagick example program uses ImageMagick command-line
+tools.
+http://www.imagemagick.org/
+
+To build Sharper you should use its ASDF file src/sharper.asd. 
+If you do not have ASDF (Another System Definition Facility) please,
+follow the instructions at http://common-lisp.net/project/asdf/
+Note that ASDF is distributed with SBCL, so if you use SBCL
+you should already have ASDF.
+
+If you want to run regression tests, install MIT Regression Tester.
+http://www.cliki.net/RT
+http://files.b9.com/rt/rt.tar.gz
+
+The Sharper test system is defined in the file
+src/tests/sharper-test.asd.
+
+* Usage
+=======
+
+Sharper provides two main sets of functions.
+
+  - Functions to work with locations in raster data.
+  - Functions to work with directory trees.
+
+** Location functions
+---------------------
+
+By location here we understand the location of an element of the data
+array at a particular resolution in space. For example, the location
+of a pixel in a 2D image is represented by resolution, x-axis and
+y-axis.
+
+The most frequently used location functions are:
+
+  - locat r x &rest more
+    Make a location with coordinates (X . MORE) and the resolution R.
+
+  - locat-r l
+    Get resolution of the location L.
+
+  - locat-axes l
+    Get the axes list of the location L.
+
+  - resol r l
+    Scale the location L to the resolution R.
+
+  - tile r l
+    Split the image to tiles with the resolution R.
+
+  - ilength r
+    Return the image length with the resolution R on one axis.
+
+** Directory tree functions
+---------------------------
+
+The most usable directory tree functions are:
+
+  - create-nodes root loc &optional node-res
+    Create nodes from the node ROOT to the location LOC.
+
+  - find-node root loc
+    Find a node in the dtree ROOT at the location LOC.
+
+  - create-nodes-box root loc1 loc2 fn &optional node-res
+    Create nodes in the box [LOC1; LOC2] from the node ROOT.
+
+  - find-nodes-box root loc1 loc2 fn
+    Find nodes for the box [L1; L2] in the dtree ROOT.
+
+For example, we have a 2D image with the width W and the height H. To
+create Sharper directory tree "/tmp/image/" we use the function
+create-nodes-box.
+
+  (create-nodes-box "/tmp/image/" (locat R 0 0) (locat R W H)
+                    #'write-pyramid)
+
+Each time the function `create-nodes-box' creates a new node it calls
+the function `write-pyramid' with two arguments:
+  node - the created node;
+  loc  - the location of the node's origin.
+
+The function `write-pyramid' is a user-defined function that
+implements data writing in the node directory.
+
+To read the image from the directory tree the function
+`find-nodes-box' is used.
+
+  (find-nodes-box "/tmp/image/" (locat R 0 0) (locat R W H)
+                  #'read-pyramid)
+
+Each time the function `find-nodes-box' finds a node, it calls
+the function `read-pyramid' with three arguments:
+  node - the found node;
+  tile - the location of the origin in the node's tile.
+  loc  - the location of the node's origin.
+
+The function `read-pyramid' reconstructs the image with tiles using
+its arguments.
+
+Note that you can specify a particular region of the image and
+different resolution.
+
+There is an example program SharperMagick that implements this
+use-case. It converts a 2D image to Sharper directory tree and
+extracts a particular region from Sharper directory tree with a
+different resolution.
+
+* Authors
+=========
+
+Andrey Fainer fandrey at gmx com
+
+
+Local variables:
+mode: outline
+End:

@@ -1,0 +1,27 @@
+-*- org -*-
+
+* DONE Make sharper-magick program
+  The program that convert an image to the sharper dtree and extract
+  from it a region at specified resolution.
+
+* DONE Resolve all compilation warnings
+* DONE Inline small functions, especially in location.lisp
+* DONE Follow some Emacs coding and documentation convention
+  Also look at SLIME readme files.
+
+* TODO If a function has side-effects document them in the same manner
+  as in HyperSpec.
+
+* DONE Correct and extend docstrings
+* DONE [[file:src/utils.lisp][utils.lisp]]: Remove useless and unused utils
+* TODO Signal typed errors rather than just simple ones
+* TODO Look at exported symbols from the package `sharper'
+  Most of [[file:src/utils.lisp][utils]] should be exported.
+
+* TODO README file should contain a road map
+* TODO README file duplicates function description and other information
+  Maybe it should be generated from a template.
+
+* TODO Compile and test using ECL
+* TODO Add ChangeLog file
+* DONE Spellcheck all documentation
