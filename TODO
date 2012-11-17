@@ -4,17 +4,32 @@
   The program that convert an image to the sharper dtree and extract
   from it a region at specified resolution.
 
-* DONE Resolve all compilation warnings
 * DONE Inline small functions, especially in location.lisp
-* DONE Follow some Emacs coding and documentation convention
-  Also look at SLIME readme files.
-
-* TODO If a function has side-effects document them in the same manner
-  as in HyperSpec.
-
-* DONE Correct and extend docstrings
 * DONE [[file:src/utils.lisp][utils.lisp]]: Remove useless and unused utils
-* TODO Signal typed errors rather than just simple ones
+* TODO Fix the box limitation in find-nodes-box
+  CLOCK: [2012-10-12 Fri 16:20]--[2012-10-12 Fri 16:39] =>  0:19
+  CLOCK: [2012-10-11 Thu 13:39]--[2012-10-11 Thu 13:59] =>  0:20
+  CLOCK: [2012-10-10 Wed 17:55]--[2012-10-10 Wed 18:04] =>  0:09
+  CLOCK: [2012-10-10 Wed 16:25]--[2012-10-10 Wed 16:39] =>  0:14
+  CLOCK: [2012-10-10 Wed 12:45]--[2012-10-10 Wed 13:00] =>  0:15
+  CLOCK: [2012-10-09 Tue 16:19]--[2012-10-09 Tue 16:34] =>  0:15
+  CLOCK: [2012-10-09 Tue 13:03]--[2012-10-09 Tue 13:29] =>  0:26
+  CLOCK: [2012-10-05 Fri 17:12]--[2012-10-05 Fri 17:29] =>  0:17
+  CLOCK: [2012-10-05 Fri 13:23]--[2012-10-05 Fri 13:37] =>  0:14
+  CLOCK: [2012-09-26 Wed 14:11]--[2012-09-26 Wed 14:21] =>  0:10
+  CLOCK: [2012-09-25 Tue 17:48]--[2012-09-25 Tue 18:08] =>  0:20
+  CLOCK: [2012-09-25 Tue 14:04]--[2012-09-25 Tue 14:45] =>  0:41
+  CLOCK: [2012-09-21 Fri 15:40]--[2012-09-21 Fri 15:55] =>  0:15
+  CLOCK: [2012-09-20 Thu 14:43]--[2012-09-20 Thu 15:01] =>  0:18
+  <2012-09-20 Thu>
+** TODO New tests for find-nodes-box
+** with-kids-locs
+** walk-kids-box
+** Tests for map-nodes-box
+* TODO Commit and push to Savannah
+* TODO User-defined nodes
+* TODO Teemer
+* TODO Signal typed errors rather than simple ones
 * TODO Look at exported symbols from the package `sharper'
   Most of [[file:src/utils.lisp][utils]] should be exported.
 
@@ -23,5 +38,21 @@
   Maybe it should be generated from a template.
 
 * TODO Compile and test using ECL
-* TODO Add ChangeLog file
-* DONE Spellcheck all documentation
+* TODO Generate ChangeLog from git log
+
+* What should be done before commit
+** TODO Resolve all compilation warnings
+** TODO Correct and extend docstrings
+** TODO Spellcheck all documentation
+
+* What should be done usualy
+** If a function has side-effects document them in the same manner
+   as in HyperSpec.
+** Follow coding style from
+  - [ ] Emacs coding and documentation convention
+  - [ ] SLIME readme files.
+  - [ ] `Tutorial on Good Lisp Programming Style' by Peter Norvig and
+        Kent Pitman
+        http://norvig.com/luv-slides.ps
+  - [ ] Lisp Frequently Asked Questions
+        http://www.cs.cmu.edu/Groups/AI/html/faqs/lang/lisp/part1/faq-doc-4.html

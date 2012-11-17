@@ -21,4 +21,7 @@
 
 (defpackage #:sharper-test
   (:use #:common-lisp #:rtest #:sharper)
+  (:import-from #:alexandria
+                #:with-gensyms
+                #:symbolicate)
   (:export #:do-tests))

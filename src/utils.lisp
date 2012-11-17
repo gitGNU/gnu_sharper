@@ -41,6 +41,18 @@
 (defun last1 (l)
   "Return car of the last cons of the list L."
   (car (last l)))
+
+(declaim (inline group))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun group (l n)
+    "TODO Docstring."
+    (when (plusp n)
+      (loop with l1 = l
+         until (endp l1)
+         collect (loop
+                    for i from 1 to n
+                    until (endp l1)
+                    collect (pop l1))))))
 
 ;;; Control flow
 
@@ -56,89 +68,12 @@ Otherwise evaluate FORMS and return the result of the last evaluated
 form."
   (let ((val (gensym)))
     `(let ((,val ,test))
-       (if ,val ,val (progn ,@forms)))))
-
-;;; Loops
-
-(defmacro while (test &body body)
-  "Evaluate the forms BODY while the expression TEST is non-`nil'."
-  `(loop
-      while ,test
-      do ,@body))
-
-;;; Strings
-
-(declaim (inline cat))
-(defun cat (&rest sequences)
-  "Convert SEQUENCES to strings and `concatenate' them."
-  (apply #'concatenate 'string
-         (mapcar #'string sequences)))
-
-;;; IO
-
-(defun map-file (fn filename &optional (if-does-not-exist :error)
-                 (end nil end-p))
-  "Apply the function FN to each expression in the file FILENAME.
-Return a list of applying results.
-
-The argument IF-DOES-NOT-EXIST have the same meaning as the
-corresponding argument of the function `open'. Its default value
-is :ERROR.
-
-If the argument END is a function apply it on each result of applying
-the function FN. Stop reading the file FILENAME if the function END
-returns T. If the argument END any other object compare it with each
-result using the function `equal'. If the argument END is not used
-read the file FILENAME until the end of the file is reached."
-  (with-open-file (s filename :direction :input
-                     :if-does-not-exist if-does-not-exist)
-    (when s
-      (let ((eof (gensym))
-            ;; TODO Make cond-function (&body tests-llists-exprs)
-            (end (cond ((functionp end) end)
-                       (end-p #'(lambda (x) (equal end x)))
-                       (t #'(lambda (x) (declare (ignore x)))))))
-        (loop
-           for r = (read s nil eof)
-           with f
-           until (eq r eof)
-           do (setq f (funcall fn r))
-           until (funcall end f)
-           collect f)))))
-
-(defun read-file (filename &optional (if-does-not-exist :error))
-  "Read expressions in the file FILENAME until EOF is reached.
-Return a list of the expessions. The value of the argument
-IF-DOES-NOT-EXIST have the same meaning as the value of the
-corresponding argument of the function `open'. Its default value is
-:ERROR."
-  (map-file #'identity filename if-does-not-exist))
-
-(defun write-file (list filename &optional (if-exists :error)
-                   (delimiter #'terpri))
-  "Write objects in the list LIST to the file FILENAME.
-
-The value of the argument IF-EXISTS have the same meaning as the value
-of the corresponding argument of the function `open'. Its default
-value is :ERROR.
-
-DELIMITER is a function that takes a stream. It writes a delimiter to
-the file FILENAME after each written object from the list LIST."
-  (with-open-file (f filename :direction :output
-                     :if-does-not-exist :create
-                     :if-exists if-exists)
-    (dolist (i list list)
-      (write i :stream f)
-      (funcall delimiter f))))
-
-(defun file-size (pathname)
-  "Return size of the file PATHNAME in bytes."
-  (with-open-file (f pathname :direction :input
-                     :element-type 'unsigned-byte)
-    (file-length f)))
+       (or ,val (progn ,@forms)))))
 
 ;;; Bindings
 
+;;; TODO Check value of TEST in expansion-time. If it is nil or t we
+;;; can make the right expansion (equvivalent to `if').
 (macrolet
     ((defiflet (let-op)
        `(defmacro ,(symbolicate 'if let-op) (test bindings &body body)
@@ -205,6 +140,59 @@ is equivalent to the form
        (destructuring-bind ,then-lambdalist ,then-form ,@body)
        (destructuring-bind ,else-lambdalist ,else-form ,@body)))
 
+;;; Loops
+
+(defmacro while (test &body body)
+  "Evaluate the forms of BODY while the expression TEST is non-`nil'."
+  `(loop
+      while ,test
+      do (progn ,@body)))
+
+(defmacro for
+    ((var begin test next &key prebegin postbegin preend postend)
+     &body body)
+  "Bind VAR to BEGIN and evaluate BODY while TEST is non-`nil'.
+
+At the end of each iteration change the value of VAR to the value of
+the expression NEXT. The bound variable VAR is visible to the forms of
+BODY and the expressions TEST and NEXT.
+
+Use expressions PREBEGIN, POSTBEGIN, PREEND, POSTEND as follows.
+
+- Evaluate PREBEGIN just before the first iteration.
+- Evaluate POSTBEGIN just after the first iteration.
+- Evaluate PREEND just before the last iteration.
+- Evaluate POSTEND just after the last iteration.
+- If no iterations are performed evaluate PREBEGIN then POSTEND.
+
+TODO Add notice that TEST evaluates in advance against BODY."
+  (with-gensyms (gbody gpreend)
+    (flet ((lamb (v b &optional e)
+             `(let ((,var ,v))
+                #'(lambda () ,@b ,e ,var))))
+      `(let* ((,var ,begin)
+              (,gpreend ,(lamb var (list preend)))
+              (,gbody ,(lamb var body postbegin)))
+         ,prebegin
+         (when ,test
+           (setq ,var ,next)
+           (while ,test
+             (setq ,gpreend ,(lamb `(funcall ,gbody) (list preend))
+                   ,gbody ,(lamb var body))
+             (setq ,var ,next))
+           (funcall ,gpreend)
+           (setq ,var (funcall ,gbody)))
+         ,postend))))
+
+
+;;; Strings
+
+(declaim (inline cat))
+(defun cat (&rest sequences)
+  "Convert SEQUENCES to strings and `concatenate' them."
+  (apply #'concatenate 'string
+         (mapcar #'string sequences)))
+
 ;;; Symbols
 
 (defun sym-eq (s1 s2 &rest more)
@@ -243,6 +231,8 @@ argument MORE to compare more than two pathnames."
 
 ;;; Numbers
 
+;;; TODO Add clamp-min and clamp-max
+
 (declaim (inline ceil))
 (defun ceil (number &optional (divisor 1))
   "if DIVISOR is 1 return (ceiling NUMBER).
@@ -267,4 +257,81 @@ Otherwise, return (* NUMBER (ceiling NUMBER/DIVISOR))."
 (defun map1-n (fn n &optional (step 1))
   "Apply the function FN to the range [1; N] with the optional STEP."
   (mapa-b fn 1 n step))
+
+;;; Types
 
+(defmacro fcoerce (obj &optional llist &body clauses)
+  "TODO Docstring."
+  `(let ((it ,obj))
+    (cond
+      ((functionp it) it)
+      ,@(mapcar #'(lambda (c)
+                    (if (cdr c)
+                        `(,(car c)
+                           #'(lambda ,llist ,(cadr c)))
+                        `(t #'(lambda ,llist ,(car c)))))
+                (group clauses 2))
+      ;; FIXME Ignore all vars in llist
+      (t #'(lambda ,llist it)))))
+
+;;; IO
+
+(defun map-file (fn filename &optional (if-does-not-exist :error)
+                 (end nil end-p))
+  "Apply the function FN to each expression in the file FILENAME.
+Return a list of applying results.
+
+The argument IF-DOES-NOT-EXIST have the same meaning as the
+corresponding argument of the function `open'. Its default value
+is :ERROR.
+
+If the argument END is a function apply it on each result of applying
+the function FN. Stop reading the file FILENAME if the function END
+returns T. If the argument END any other object compare it with each
+result using the function `equal'. If the argument END is not used
+read the file FILENAME until the end of the file is reached."
+  (with-open-file (s filename :direction :input
+                     :if-does-not-exist if-does-not-exist)
+    (when s
+      (let ((eof (gensym))
+            (end (fcoerce end (x)
+                   end-p (equal end x)
+                   (declare (ignore x)))))
+        (loop
+           for r = (read s nil eof)
+           with f
+           until (eq r eof)
+           do (setq f (funcall fn r))
+           until (funcall end f)
+           collect f)))))
+
+(defun read-file (filename &optional (if-does-not-exist :error))
+  "Read expressions in the file FILENAME until EOF is reached.
+Return a list of the expessions. The value of the argument
+IF-DOES-NOT-EXIST have the same meaning as the value of the
+corresponding argument of the function `open'. Its default value is
+:ERROR."
+  (map-file #'identity filename if-does-not-exist))
+
+(defun write-file (list filename &optional (if-exists :error)
+                   (delimiter #'terpri))
+  "Write objects in the list LIST to the file FILENAME.
+
+The value of the argument IF-EXISTS have the same meaning as the value
+of the corresponding argument of the function `open'. Its default
+value is :ERROR.
+
+DELIMITER is a function that takes a stream. It writes a delimiter to
+the file FILENAME after each written object from the list LIST."
+  (with-open-file (f filename :direction :output
+                     :if-does-not-exist :create
+                     :if-exists if-exists)
+    (dolist (i list list)
+      (write i :stream f)
+      (funcall delimiter f))))
+
+(defun file-size (pathname)
+  "Return size of the file PATHNAME in bytes."
+  (with-open-file (f pathname :direction :input
+                     :element-type 'unsigned-byte)
+    (file-length f)))

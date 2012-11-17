@@ -31,6 +31,17 @@
                      (sharper::make-pyramid-array r dim))
                  res)))
 
+(defun write-node (node res dim)
+  "Write the pyramid PYRAMID to the node directory NODE.
+Rewrite data of the node NODE."
+  (write-file
+   (list (cons :offsets
+               (save-pyramid (dir+file node *node-pyramid-filename*)
+                             (mkpyramid res dim))))
+   (dir+file node *node-properties-filename*)
+   :supersede)
+  node)
+
 (defmacro with-root-file (file &body body)
   "Remove the dtree \"/tmp/root/\" and the file FILE after execution
 of forms BODY."
@@ -55,10 +66,12 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 (defun find-node-test (location)
   "Make a test tree and call `find-node' with LOCATION."
   (with-root
-    (sharper::write-node "/tmp/root/" (mkpyramid 4 3))
-    (sharper::write-node "/tmp/root/801/" (mkpyramid 3 3))
-    (sharper::write-node "/tmp/root/1074/" (mkpyramid 2 3))
-    (sharper::write-node "/tmp/root/1074/22/" (mkpyramid 2 3))
+    (ensure-directories-exist "/tmp/root/801/")
+    (ensure-directories-exist "/tmp/root/1074/22/")
+    (write-node "/tmp/root/" 4 3)
+    (write-node "/tmp/root/801/" 3 3)
+    (write-node "/tmp/root/1074/" 2 3)
+    (write-node "/tmp/root/1074/22/" 2 3)
     (namestring-car
      (multiple-value-list (sharper::find-node "/tmp/root/" location)))))
 
@@ -109,8 +122,9 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
     (location &optional (node-res sharper:*default-node-resolution*))
   "Make a test tree and call `create-nodes' with LOCATION."
   (with-root-file (dir+file "/tmp/" sharper::*node-pyramid-filename*)
-    (sharper::write-node "/tmp/root/" (mkpyramid 4 3))
-    (sharper::write-node "/tmp/root/818/" (mkpyramid 3 3))
+    (ensure-directories-exist "/tmp/root/818/")
+    (write-node "/tmp/root/" 4 3)
+    (write-node "/tmp/root/818/" 3 3)
     (shell-command "head -c 584 /dev/urandom >/tmp/~A && ~
                                   cp /tmp/~A /tmp/root/818/"
                    sharper::*node-pyramid-filename*
@@ -239,12 +253,100 @@ box: LOC1 and LOC2."
   ("/tmp/root/7/"   6 56)
   ("/tmp/root/6/"   6 48)
   ("/tmp/root/"     3 0))
+
+;;; TODO Add test when dtree is already created or partially
+;;; created. Because with node creation we always have nodes at
+;;; resolution equal or great to the requested resolution
+;;; `create-nodes-box' must walk at maximum available resolution.
+
 
-(defun find-nodes-box-test-fn1 (loc1 loc2)
+(defun find-nodes-walk-box-test (res loc1 loc2)
+  "TODO Docstring"
+  (let (locs)
+    (sharper::find-nodes-walk-box
+     res loc1 loc2
+     #'(lambda (l l1 l2)
+         (push (list l l1 l2) locs)))
+    (apply #'values (nreverse locs))))
+
+(deftest find-nodes-walk-box-test1
+    (find-nodes-walk-box-test 4 (locat 8 65 16 3) (locat 8 20 50 37))
+  ;; prebz
+  ;; preby
+  ;; prebx
+  ((4 1 1 0) (8 20 16 3) (8 255 255 255))
+  ((4 2 1 0) (8 0 16 3) (8 255 255 255))
+  ((4 3 1 0) (8 0 16 3) (8 255 255 255))
+  ;; preex
+  ((4 4 1 0) (8 0 16 3) (8 65 255 255))
+  ;; prebx
+  ((4 1 2 0) (8 20 0 3) (8 255 255 255))
+  ((4 2 2 0) (8 0 0 3) (8 255 255 255))
+  ((4 3 2 0) (8 0 0 3) (8 255 255 255))
+  ;; preex
+  ((4 4 2 0) (8 0 0 3) (8 65 255 255))
+  ;; preey
+  ;; prebx
+  ((4 1 3 0) (8 20 0 3) (8 255 50 255))
+  ((4 2 3 0) (8 0 0 3) (8 255 50 255))
+  ((4 3 3 0) (8 0 0 3) (8 255 50 255))
+  ;; preex
+  ((4 4 3 0) (8 0 0 3) (8 65 50 255))
+  ;; preby
+  ;; prebx
+  ((4 1 1 1) (8 20 16 0) (8 255 255 255))
+  ((4 2 1 1) (8 0 16 0) (8 255 255 255))
+  ((4 3 1 1) (8 0 16 0) (8 255 255 255))
+  ;; preex
+  ((4 4 1 1) (8 0 16 0) (8 65 255 255))
+  ;; prebx
+  ((4 1 2 1) (8 20 0 0) (8 255 255 255))
+  ((4 2 2 1) (8 0 0 0) (8 255 255 255))
+  ((4 3 2 1) (8 0 0 0) (8 255 255 255))
+  ;; preex
+  ((4 4 2 1) (8 0 0 0) (8 65 255 255))
+  ;; preey
+  ;; prebx
+  ((4 1 3 1) (8 20 0 0) (8 255 50 255))
+  ((4 2 3 1) (8 0 0 0) (8 255 50 255))
+  ((4 3 3 1) (8 0 0 0) (8 255 50 255))
+  ;; preex
+  ((4 4 3 1) (8 0 0 0) (8 65 50 255))
+  ;; preez
+  ;; preby
+  ;; prebx
+  ((4 1 1 2) (8 20 16 0) (8 255 255 37))
+  ((4 2 1 2) (8 0 16 0) (8 255 255 37))
+  ((4 3 1 2) (8 0 16 0) (8 255 255 37))
+  ;; preex
+  ((4 4 1 2) (8 0 16 0) (8 65 255 37))
+  ;; prebx
+  ((4 1 2 2) (8 20 0 0) (8 255 255 37))
+  ((4 2 2 2) (8 0 0 0) (8 255 255 37))
+  ((4 3 2 2) (8 0 0 0) (8 255 255 37))
+  ;; preex
+  ((4 4 2 2) (8 0 0 0) (8 65 255 37))
+  ;; preey
+  ;; prebx
+  ((4 1 3 2) (8 20 0 0) (8 255 50 37))
+  ((4 2 3 2) (8 0 0 0) (8 255 50 37))
+  ((4 3 3 2) (8 0 0 0) (8 255 50 37))
+  ;; preex
+  ((4 4 3 2) (8 0 0 0) (8 65 50 37)))
+
+(deftest find-nodes-walk-box-test2
+    (find-nodes-walk-box-test 3 (locat 7 41 26 74) (locat 7 46 25 72))
+  ((3 2 1 4) (7 41 25 72) (7 46 26 74)))
+
+(defun find-nodes-box-test (loc1 loc2)
   "Make a test tree for `find-nodes-box'."
   (with-root
-    (create-nodes-box "/tmp/root/" (locat 8 50 0) (locat 8 150 40)
-                      #'(lambda (n l) (declare (ignore n l))))
+    (create-nodes-box "/tmp/root/" (locat 2 0 0 0) (locat 2 1 1 0)
+                      #'(lambda (n l) (declare (ignore n l))) 2)
+    (create-nodes-box "/tmp/root/" (locat 5 4 1 2) (locat 5 11 9 5)
+                      #'(lambda (n l) (declare (ignore n l))) 3)
+    (create-nodes-box "/tmp/root/" (locat 7 18 7 10) (locat 7 45 37 22)
+                      #'(lambda (n l) (declare (ignore n l))) 2)
     (cl-fad:delete-directory-and-files "/tmp/root/4/")
     (cl-fad:delete-directory-and-files "/tmp/root/7/")
     (cl-fad:delete-directory-and-files "/tmp/root/20/")

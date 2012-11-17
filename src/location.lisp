@@ -77,6 +77,33 @@ Do not check the value of the resolution R."
   "Get the axes list of the location L."
   (cdr l))
 
+(declaim (inline locat-axis))
+(defun locat-axis (l n)
+  "Get the Nth axis of the location L."
+  (nth (1+ n) l))
+
+(declaim (inline (setf locat-axis)))
+(defun (setf locat-axis) (v l n)
+  "Set the Nth axis of the location L to the value V."
+  (setf (nth (1+ n) l) v))
+
+(declaim (inline copy-locat))
+(defun copy-locat (l)
+  "Make copy of the location L."
+  (copy-list l))
+
+(declaim (inline zeroloc))
+(defun zeroloc (r axnum)
+  "TODO Docstring"
+  (apply #'locat r (make-list axnum :initial-element 0)))
+
+;;; FIXME I don't like the name
+(declaim (inline maxloc))
+(defun maxloc (r axnum)
+  "TODO Docstring"
+  (apply #'locat r
+         (make-list axnum :initial-element (1- (ilength r)))))
+
 ;;; TODO Consider another name: scale
 (defun resol (r l)
   "Scale the location L to the resolution R."
@@ -123,7 +150,31 @@ is equivalent to
    (apply #'locat r (mapcar #'(lambda (x) (rem x n))
                             (locat-axes l)))))
 
-(defun walk-box (l1 l2 fn &optional (step 1))
+;;; TODO Resol the lesser locations res to the greatest one.  Make
+;;; resol-to res-or-loc &rest locs
+(defun walk-box-ranges (l1 l2 &optional bnds)
+  "TODO Docstring"
+  (apply #'mapcar
+         #'(lambda (a b &optional bnd)
+             (let ((bnd (mapcar
+                         #'(lambda (b)
+                             (fcoerce b (l)
+                               (declare (ignore l))))
+                         (unless* bnd
+                           (make-list 4 :initial-element nil)))))
+               ;; FIXME The predicate should be supplied as
+               ;; argument.
+               (if (< a b)
+                   (list a b bnd)
+                   (list b a bnd))))
+         (locat-axes l1)
+         (locat-axes l2)
+         (when bnds (list bnds))))
+
+;;; TODO Add one step for each axis
+;;; TODO Edit docstring
+;;; FIXME If there are no boundaries an error is occured
+(defun walk-box (l1 l2 fn &optional (step 1) &rest boundaries)
   "Apply the function FN to each location in the box [L1; L2].
 The box is specified by two corners: L1 and L2. Both corners are
 included to the walking.
@@ -145,27 +196,49 @@ The walking is performed in the following way:
   the first axis.
 
 At present, the walking performs only at resolution (locat-r L1)."
-  ;; TODO Make cond-function (&body tests-llists-exprs)
-  (let ((stepfn (if (functionp step)
-                    step
-                    #'(lambda () step)))
-        (callfn #'(lambda (axes)
-                    (funcall fn (apply #'locat (locat-r l1) axes)))))
-    (funcall
-     (reduce #'(lambda (fn range)
-                 #'(lambda (axes)
-                     (loop
-                        with n = (car range)
-                        while (<= n (cadr range))
-                        do (funcall fn (cons n axes))
-                        (incf n (funcall stepfn)))))
-             (cons callfn (mapcar #'(lambda (a b)
-                                      (if (< a b)
-                                          (list a b)
-                                          (list b a)))
-                                  (locat-axes l1)
-                                  (locat-axes l2))))
-     nil)))
+  (flet ((mkloc (axes) (apply #'locat (locat-r l1) axes)))
+    (let* ((stepfn (fcoerce step))
+           (callfn #'(lambda (axes)
+                       (funcall fn (mkloc axes))))
+           (ranges-bounds (walk-box-ranges l1 l2 boundaries))
+           (corners (apply #'mapcar #'list ranges-bounds))
+           (l1 (mkloc (car corners)))
+           (l2 (mkloc (cadr corners))))
+      (funcall
+       (reduce #'(lambda (fn range-bound)
+                   (destructuring-bind (begin
+                                        end
+                                        (prebegin
+                                         postbegin
+                                         preend
+                                         postend))
+                       range-bound
+                     #'(lambda (axes)
+                         (macrolet ((mkbnd (bname l)
+                                      `(funcall
+                                        ,bname
+                                        (mkloc (append
+                                                (butlast (locat-axes ,l)
+                                                         (1+ (length axes)))
+                                                (cons n axes))))))
+                           (for (n begin (<= n end) (+ n (funcall stepfn))
+                                   :prebegin (mkbnd prebegin l1)
+                                   :postbegin (mkbnd postbegin l2)
+                                   :preend (mkbnd preend l1)
+                                   :postend (mkbnd postend l2))
+                             (funcall fn (cons n axes)))))))
+               (cons callfn ranges-bounds))
+       nil))))
+
+(defun sort-box (l1 l2)
+  "TODO Docstring"
+  (let (a1 a2)
+    (mapc #'(lambda (rb)
+              (push (car rb) a1)
+              (push (cadr rb) a2))
+          (walk-box-ranges l1 l2))
+    (values (apply #'locat (locat-r l1) (nreverse a1))
+            (apply #'locat (locat-r l2) (nreverse a2)))))
 
 (defun map-axes (fn l &rest more)
   "Apply the function FN to each axis of the location L.
@@ -206,6 +279,10 @@ the location L."
   (locat- l (apply #'locat
                    (locat-r l)
                    (locat-axes (tile r l)))))
+
+;; (defun move (loc axes &optional relative)
+;;   "TODO Docstring"
+;;   (map-axes loc ))
 
 ;; (defun tile-box (r l l1 l2)
 ;;   "Return the box [L1; L2] clipped to the tile with the location L.

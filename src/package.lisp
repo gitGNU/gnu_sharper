@@ -20,6 +20,7 @@
 (defpackage #:sharper
   (:use #:common-lisp #:cl-fad)
   (:import-from #:alexandria
+                #:with-gensyms
                 #:symbolicate)
   (:export
    ;; Utils
@@ -31,15 +32,16 @@
    #:cons-if
    #:cons-if*
    #:unless*
+   #:while
+   #:for
    #:cat
    #:read-file
    #:write-file
    #:file-size
    #:iflet
    #:iflet*
-   #:limit-floor
-   #:limit-ceil
-   #:limit
+   #:clamp-min
+   #:clamp-max
    #:dir+file
    #:ceil
    ;; Location
@@ -48,6 +50,7 @@
    #:locat-r
    #:locat-axes
    #:resol
+   #:walk-box
    #:map-axes
    #:locat+
    #:locat-

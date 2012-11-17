@@ -28,6 +28,8 @@
   :serial t
   :depends-on (:rt :sharper)
   :components ((:file "package")
+               (:file "utils")
+               (:file "location")
                (:file "dtree")))
 
 (defmethod perform ((o test-op) (c (eql (find-system :sharper-test))))
