@@ -6,26 +6,11 @@
 
 * DONE Inline small functions, especially in location.lisp
 * DONE [[file:src/utils.lisp][utils.lisp]]: Remove useless and unused utils
+* DONE The macro `traverse-node'
+* DONE Code and documentation clean up
 * TODO Fix the box limitation in find-nodes-box
-  CLOCK: [2012-10-12 Fri 16:20]--[2012-10-12 Fri 16:39] =>  0:19
-  CLOCK: [2012-10-11 Thu 13:39]--[2012-10-11 Thu 13:59] =>  0:20
-  CLOCK: [2012-10-10 Wed 17:55]--[2012-10-10 Wed 18:04] =>  0:09
-  CLOCK: [2012-10-10 Wed 16:25]--[2012-10-10 Wed 16:39] =>  0:14
-  CLOCK: [2012-10-10 Wed 12:45]--[2012-10-10 Wed 13:00] =>  0:15
-  CLOCK: [2012-10-09 Tue 16:19]--[2012-10-09 Tue 16:34] =>  0:15
-  CLOCK: [2012-10-09 Tue 13:03]--[2012-10-09 Tue 13:29] =>  0:26
-  CLOCK: [2012-10-05 Fri 17:12]--[2012-10-05 Fri 17:29] =>  0:17
-  CLOCK: [2012-10-05 Fri 13:23]--[2012-10-05 Fri 13:37] =>  0:14
-  CLOCK: [2012-09-26 Wed 14:11]--[2012-09-26 Wed 14:21] =>  0:10
-  CLOCK: [2012-09-25 Tue 17:48]--[2012-09-25 Tue 18:08] =>  0:20
-  CLOCK: [2012-09-25 Tue 14:04]--[2012-09-25 Tue 14:45] =>  0:41
-  CLOCK: [2012-09-21 Fri 15:40]--[2012-09-21 Fri 15:55] =>  0:15
-  CLOCK: [2012-09-20 Thu 14:43]--[2012-09-20 Thu 15:01] =>  0:18
-  <2012-09-20 Thu>
 ** TODO New tests for find-nodes-box
-** with-kids-locs
-** walk-kids-box
-** Tests for map-nodes-box
+* TODO Move pyramid.lisp to tests
 * TODO Commit and push to Savannah
 * TODO User-defined nodes
 * TODO Teemer
@@ -40,7 +25,7 @@
 * TODO Compile and test using ECL
 * TODO Generate ChangeLog from git log
 
-* What should be done before commit
+* What should be done before committing
 ** TODO Resolve all compilation warnings
 ** TODO Correct and extend docstrings
 ** TODO Spellcheck all documentation

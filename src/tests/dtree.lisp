@@ -64,7 +64,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
     r))
 
 (defun find-node-test (location)
-  "Make a test tree and call `find-node' with LOCATION."
+  "Make the test dtree and call `find-node' with LOCATION."
   (with-root
     (ensure-directories-exist "/tmp/root/801/")
     (ensure-directories-exist "/tmp/root/1074/22/")
@@ -77,122 +77,121 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 (deftest find-node-test1
     (find-node-test (locat 4 1 2 3))
-  "/tmp/root/"
-  (4 1 2 3)
-  (4 1 2 3))
+  "/tmp/root/")
 
 (deftest find-node-test2
     (find-node-test (locat 2 1 2 3))
-  "/tmp/root/"
-  (2 1 2 3)
-  (2 1 2 3))
+  "/tmp/root/")
 
 (deftest find-node-test3
     (find-node-test (locat 5 3 5 6))
-  "/tmp/root/801/"
-  (1 1 1 0)
-  (5 3 5 6))
+  "/tmp/root/801/" (5 3 5 6))
 
 (deftest find-node-test4
     (find-node-test (locat 7 10 17 25))
-  "/tmp/root/801/"
-  (3 2 1 1)
-  (7 10 17 25))
+  "/tmp/root/801/" (7 10 17 25))
 
 (deftest find-node-test5
     (find-node-test (locat 7 32 4 127))
-  "/tmp/root/"
-  (4 4 0 15)
-  (4 4 0 15))
+  "/tmp/root/")
 
 (deftest find-node-test6
     (find-node-test (locat 9 42 69 100))
-  "/tmp/root/801/"
-  (3 2 1 1)
-  (7 10 17 25))
+  "/tmp/root/801/" (7 10 17 25))
 
 (deftest find-node-test7
     (find-node-test (locat 7 21 26 35))
-  "/tmp/root/1074/22/"
-  (1 1 0 1)
-  (7 21 26 35))
+  "/tmp/root/1074/22/" (7 21 26 35))
 
 ;;; TODO Add comparing of the pyramid content for tests 5 and 6.
-(defun create-nodes-test
-    (location &optional (node-res sharper:*default-node-resolution*))
-  "Make a test tree and call `create-nodes' with LOCATION."
+(defun create-node-test
+    (location &optional (root-res 4) (node-res 4))
+  "Make a test tree and call `create-node' with LOCATION."
   (with-root-file (dir+file "/tmp/" sharper::*node-pyramid-filename*)
     (ensure-directories-exist "/tmp/root/818/")
-    (write-node "/tmp/root/" 4 3)
+    (write-node "/tmp/root/" root-res 3)
     (write-node "/tmp/root/818/" 3 3)
     (shell-command "head -c 584 /dev/urandom >/tmp/~A && ~
                                   cp /tmp/~A /tmp/root/818/"
                    sharper::*node-pyramid-filename*
                    sharper::*node-pyramid-filename*)
-    (let* ((l (multiple-value-list
-               (sharper::create-nodes "/tmp/root/" location node-res)))
+    (let* ((nodes)
+           (node (sharper::create-node "/tmp/root/" location
+                                       #'(lambda (n l)
+                                           (write-node n node-res 3)
+                                           (push (list n l) nodes))))
            (len (with-open-file
-                    (f (dir+file (car l) sharper::*node-pyramid-filename*))
+                    (f (dir+file node sharper::*node-pyramid-filename*))
                   (file-length f))))
       (namestring-car
-       (append l
-               (list len
-                     (shell-command
-                      "cmp -s /tmp/~A /tmp/root/818/~A"
-                      sharper::*node-pyramid-filename*
-                      sharper::*node-pyramid-filename*)))))))
+       (list node
+             (mapcar #'(lambda (n)
+                         (cons (namestring (car n)) (cdr n)))
+                     (nreverse nodes))
+             len
+             (shell-command
+              "cmp -s /tmp/~A /tmp/root/818/~A"
+              sharper::*node-pyramid-filename*
+              sharper::*node-pyramid-filename*))))))
 
-(deftest create-nodes-test1
-    (create-nodes-test (locat 3 7 5 4))
+(deftest create-node-test1
+    (create-node-test (locat 3 7 5 4))
   "/tmp/root/"
-  (3 7 5 4)
+  nil
   4680
   0)
 
-(deftest create-nodes-test2
-    (create-nodes-test (locat 7 10 17 25))
+(deftest create-node-test2
+    (create-node-test (locat 7 10 17 25))
   "/tmp/root/801/"
-  (3 2 1 1)
+  (("/tmp/root/801/" (4 1 2 3)))
   4680
   0)
 
-(deftest create-nodes-test3
-    (create-nodes-test (locat 7 10 17 25) 3)
+(deftest create-node-test3
+    (create-node-test (locat 7 10 17 25) 4 3)
   "/tmp/root/801/"
-  (3 2 1 1)
+  (("/tmp/root/801/" (4 1 2 3)))
   584
   0)
 
-(deftest create-nodes-test4
-    (create-nodes-test (locat 7 21 26 35) 2)
+(deftest create-node-test4
+    (create-node-test (locat 7 21 26 35) 4 2)
   "/tmp/root/1074/22/"
-  (1 1 0 1)
+  (("/tmp/root/1074/" (4 2 3 4)) ("/tmp/root/1074/22/" (6 10 13 17)))
   72
   0)
 
-;;; `create-nodes' works as `find-node'
-(deftest create-nodes-test5
-    (create-nodes-test (locat 7 21 26 31))
+;;; `create-node' works as `find-node'
+(deftest create-node-test5
+    (create-node-test (locat 7 21 26 31))
   "/tmp/root/818/"
-  (3 5 2 7)
+  nil
   584
   0)
 
-;;; `create-nodes' does not create the node "/tmp/root/818/", but
+;;; `create-node' does not create the node "/tmp/root/818/", but
 ;;; creates the kid "/tmp/root/818/469/"
-(deftest create-nodes-test6
-    (create-nodes-test (locat 8 42 53 63))
+(deftest create-node-test6
+    (create-node-test (locat 8 42 53 63))
   "/tmp/root/818/469/"
-  (1 0 1 1)
+  (("/tmp/root/818/469/" (7 21 26 31)))
   4680
   0)
 
-;;; If there is no the root, create it.
-(deftest create-nodes-test7
+;;; If there is no any dtree, create it.
+(deftest create-node-test7
     (with-root
-      (sharper::create-nodes "/tmp/root/" (locat 1 0 1)))
+      (let (node)
+        (values
+         (sharper::create-node "/tmp/root/"
+                               (locat 1 0 1)
+                               #'(lambda (n l)
+                                   (write-node n 4 2)
+                                   (setq node (list n l))))
+         node)))
   "/tmp/root/"
-  (1 0 1))
+  ("/tmp/root/" nil))
 
 (defun create-nodes-box-test (loc1 loc2 &optional
                               (node-res sharper:*default-node-resolution*))

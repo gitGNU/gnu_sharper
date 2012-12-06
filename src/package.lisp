@@ -66,7 +66,7 @@
    #:node-prop
    #:node-resolution
    #:dtree-resolution
-   #:create-nodes
+   #:create-node
    #:find-node
    #:create-nodes-box
    #:find-nodes-box))
