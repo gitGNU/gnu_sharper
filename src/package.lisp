@@ -26,6 +26,7 @@
    ;; Utils
    #:it
    #:aif
+   #:awhen
    #:mapa-b
    #:map0-n
    #:map1-n
@@ -40,6 +41,7 @@
    #:file-size
    #:iflet
    #:iflet*
+   #:pathname-eq
    #:clamp-min
    #:clamp-max
    #:dir+file

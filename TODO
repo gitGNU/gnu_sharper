@@ -1,18 +1,17 @@
 -*- org -*-
 
-* DONE Make sharper-magick program
-  The program that convert an image to the sharper dtree and extract
-  from it a region at specified resolution.
-
-* DONE Inline small functions, especially in location.lisp
-* DONE [[file:src/utils.lisp][utils.lisp]]: Remove useless and unused utils
-* DONE The macro `traverse-node'
-* DONE Code and documentation clean up
+* TODO Rewrite [[file:src/tests/dtree.lisp::(defun%20walk-node-box-test][`walk-node-box']] tests
+* TODO Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
+* TODO Fix `create-nodes-box'
+* TODO Fix `find-nodes-box'
 * TODO Fix the box limitation in find-nodes-box
-** TODO New tests for find-nodes-box
+** TODO New tests for find-nodes-box and create-nodes-box
+* TODO Documentation and code clean up
 * TODO Move pyramid.lisp to tests
-* TODO Commit and push to Savannah
 * TODO User-defined nodes
+* TODO README: The description should be more simpler and clearer
+  for people without prior knowledge of octrees, pyramids, etc.
+* TODO image.lisp - the dtree wrapper for working on multiresolution images
 * TODO Teemer
 * TODO Signal typed errors rather than simple ones
 * TODO Look at exported symbols from the package `sharper'
@@ -25,19 +24,21 @@
 * TODO Compile and test using ECL
 * TODO Generate ChangeLog from git log
 
-* What should be done before committing
-** TODO Resolve all compilation warnings
-** TODO Correct and extend docstrings
-** TODO Spellcheck all documentation
 
-* What should be done usualy
-** If a function has side-effects document them in the same manner
-   as in HyperSpec.
-** Follow coding style from
-  - [ ] Emacs coding and documentation convention
-  - [ ] SLIME readme files.
-  - [ ] `Tutorial on Good Lisp Programming Style' by Peter Norvig and
-        Kent Pitman
-        http://norvig.com/luv-slides.ps
-  - [ ] Lisp Frequently Asked Questions
-        http://www.cs.cmu.edu/Groups/AI/html/faqs/lang/lisp/part1/faq-doc-4.html
+* What should be done before committing to master
+** TODO Resolve all compilation warnings
+** TODO Correct docstrings
+** TODO Spellcheck all documentation
+** TODO Code and documentation clean up. TODOs, FIXMEs
+
+
+* What should be done usually
+** Follow coding and documenting style from
+  - Emacs coding and documentation convention
+  - SLIME readme files.
+  - `Tutorial on Good Lisp Programming Style' by Peter Norvig and Kent
+    Pitman http://norvig.com/luv-slides.ps
+  - Lisp Frequently Asked Questions
+    http://www.cs.cmu.edu/Groups/AI/html/faqs/lang/lisp/part1/faq-doc-4.html
+  - If a function has side-effects document them in the same manner as
+    in HyperSpec.

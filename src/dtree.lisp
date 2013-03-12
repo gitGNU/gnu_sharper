@@ -132,6 +132,7 @@ Return NIL if NODE does not have the kid. The location LOC is relative
 to the node."
   (kid node (kid-num node loc)))
 
+;;; TODO The function is not used
 (defun node-origin (loc &optional (node-res *default-node-resolution*))
   "Return the origin the node which is specified by the location LOC.
 Return the tile origin with the resolution of the tile that is
@@ -189,26 +190,48 @@ the form ELSE."
                (,resvar 0))
            (labels ((,gtrav (,nodevar ,resvar ,@kidargs)
                       ,travbody))
+             ;; TODO Kidargs should be `let' clauses.
+             ;; Bind them at this point. Otherwise I need wrap entire
+             ;; traverse-node expression into the let form.
              ,travbody))))))
 
 ;;; FIXME There is a little mess with type of nodes. Sometimes
 ;;; `create-nodes' and `find-node' return a string, sometimes a
 ;;; pathname.
 
-;;; TODO Replace WRITEFN with corresponding closure in ROOT.
-(macrolet
-    ((deftraverse (name args doc lowform &optional (nodeform 'node))
-       `(defun ,(symbolicate name '-node) (node loc ,@args)
-          ,doc
-          (traverse-node ,nodeform (locat-r loc) curnode cures ()
-            curnode
-            (let ((curloc (resol cures loc)))
-              (if-kid curloc
-                      (traverse-kid it)
-                      ,lowform))))))
+;;; TODO Why `create-lowform' and `create-nodeform' are macros?
+(defmacro create-lowform (&rest kidargs)
+  "TODO Docstring"
+  `(traverse-kid
+    (let ((kid (pathname
+                (format nil "~A~D/" curnode (kid-num curnode curloc)))))
+      (ensure-directories-exist kid)
+      (funcall writefn kid curloc)
+      kid)
+    ,@kidargs))
 
-  (deftraverse create (writefn)
-    "Create the node at the location LOC in the dtree NODE.
+(defmacro create-root-form (loc)
+  "TODO Docstring"
+  `(if (cl-fad:directory-exists-p node)
+       node
+       (progn (ensure-directories-exist node)
+              (funcall writefn node nil)
+              node)))
+
+(defmacro deftraverse-node (name args doc lowform &optional (nodeform 'node))
+  "TODO Docstring"
+  `(defun ,(symbolicate name '-node) (node loc ,@args)
+     ,doc
+     (traverse-node ,nodeform (locat-r loc) curnode cures ()
+       curnode
+       (let ((curloc (resol cures loc)))
+         (if-kid curloc
+                 (traverse-kid it)
+                 ,lowform)))))
+
+;; TODO Replace WRITEFN with corresponding closure in ROOT.
+(deftraverse-node create (writefn)
+  "Create the node at the location LOC in the dtree NODE.
 Create parent nodes and the root NODE if they are not present.  If the
 node at requested location is already exist do not recreate it
 Also for its parents.
@@ -221,57 +244,20 @@ creation of parent nodes it has lower resolution (parent resolution).
 If the root node is created the current location is NIL.
 
 Return the last created node.  If there is no one return NIL."
-    (traverse-kid
-     (let ((kid (pathname
-                 (format nil "~A~D/" curnode (kid-num curnode curloc)))))
-       (ensure-directories-exist kid)
-       (funcall writefn kid curloc)
-       kid))
-    (if (cl-fad:directory-exists-p node)
-        node
-        (progn (ensure-directories-exist node)
-               (funcall writefn node nil)
-               node)))
+  (create-lowform)
+  (create-root-form loc))
 
-  (deftraverse find ()
-      "Find the node at the location LOC in the dtree NODE.
+;;; FIXME Return values of `find-node' should correlate with args to
+;;; findfn passed by `find-nodes-box'.
+(deftraverse-node find ()
+  "Find the node at the location LOC in the dtree NODE.
 Return two values: the found node and the requested location LOC.  If
 there is no any node at requested resolution (locat-r LOC) return the
 node at maximum available resolution and the location `resol''ed
 \(scaled) to the resolution."
-    (values curnode curloc)))
+  (values curnode curloc))
 
-;;; FIXME The function works incorrectly with existing dtree.
-;;; (progn (create-nodes-box "~/tmp/root/" (locat 2 0 0 0) (locat 2 1 1 0)
-;;;                          #'(lambda (n l) (declare (ignore n l))) 2)
-;;;        (create-nodes-box "~/tmp/root/" (locat 5 4 1 2) (locat 5 11 9 5)
-;;;                          #'(lambda (n l) (declare (ignore n l))) 3))
-;;; This should make the dtree whith resolution 5 but 8 is created.
-(defun create-nodes-box (root loc1 loc2 writefn)
-  "Create nodes in the box [LOC1; LOC2] from the node ROOT.
-Perform the box walking (see `walk-box') with the function
-`create-nodes'. Apply the function FN to the created node and the
-current location. The order of applying the function FN to created
-nodes is undefined. The resolution of created nodes is NODE-RES."
-  (symbol-macrolet
-      ((set-step (setq step
-                       (ilength (node-resolution
-                                 (create-node root l writefn))))))
-    (let* ((step)
-           (current)
-           (walk #'(lambda (l) set-step))
-           (begin #'(lambda (l)
-                      (declare (ignore l))
-                      (setq current walk))))
-      (setq current begin)
-      set-step
-      ;; TODO Move loc1 to tile origin.
-      (walk-box loc1 loc2
-                #'(lambda (loc)
-                    (funcall current loc))
-                #'(lambda () step)))))
-
-(defun find-nodes-walk-box (res loc1 loc2 fn)
+(defun walk-node-box (res loc1 loc2 fn)
   "TODO Docstring"
   (multiple-value-bind (loc1 loc2) (sort-box loc1 loc2)
     (let* ((l1r (locat-r loc1))
@@ -298,39 +284,116 @@ nodes is undefined. The resolution of created nodes is NODE-RES."
                              (mkbnd i kidloc2 loc2) ; Preend
                              (mkbnd i kidloc2 (maxloc l1r n)))))))))) ; Postend
 
-(defun find-nodes-box (root loc1 loc2 fn)
-  "Find nodes for the box [L1; L2] in the dtree ROOT.
-Perform the box walking (see `walk-box') in the dtree ROOT. Apply the
-function FN to each found node, the `tile' of the current location and
-the current location. The order of applying the function FN to found
-nodes is undefined.
+(defmacro deftraverse-box (name doc fname resform lowform &optional nodeform)
+  "TODO Docstring"
+  ;; TODO Consider shorter names create-box and find-box
+  `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,fname)
+     (let ((parentloc (zeroloc 1
+                               (length (locat-axes loc1))))
+           (l1 loc1)
+           (l2 loc2))
+       (traverse-node ,nodeform (locat-r loc1)
+           curnode cures
+           (parentloc l1 l2)
+         ,resform
+         (let ((curnres (node-resolution curnode)))
+           (walk-node-box
+            curnres l1 l2
+            #'(lambda (l kl1 kl2)
+                (let ((curloc (locat+ (resol cures parentloc)
+                                      (apply #'locat cures (locat-axes l)))))
+                  (if-kid l
+                          ;; TODO I need a var bound to target res
+                          ;; TODO Because `walk-node-box' have the
+                          ;; target res it should do this kid-tile
+                          ;; correction
+                          (let* ((res (locat-r loc1))
+                                 (loc (resol res curloc))
+                                 (k1a (locat-axes (tile (- res cures) kl1)))
+                                 (k2a (locat-axes (tile (- res cures) kl2))))
+                           (traverse-kid it curloc
+                                         (locat+ loc (apply #'locat res k1a))
+                                         (locat+ loc (apply #'locat res k2a))))
+                          ,lowform)))))))))
 
-Please note! The current implementation is incomplete. the box [L1;
-L2] must have the size of entire image, i.e. L1 => (locat R 0 0...);
-L2 => (locat R (ilength R) (ilength R)...)."
-  (let ((maxres (locat-r loc1)))
-    (labels
-        ((fnb (node loc loc1 loc2)
-           (let ((loc-r (locat-r loc))
-                 (nr (node-resolution node)))
-             (if (>= loc-r maxres)
-                 (let ((loc (resol maxres loc)))
-                   (funcall fn node
-                            (tile (- maxres loc-r (- nr)) loc)
-                            loc))
-                 (find-nodes-walk-box
-                  nr loc1 loc2
-                  #'(lambda (nl l1 l2)
-                      (let ((loc (locat+ loc
-                                         (apply #'locat loc-r
-                                                (locat-axes nl)))))
-                        (aif (kid-at node nl)
-                             (fnb it
-                                  (resol (node-resolution it) loc)
-                                  l1 l2)
-                             (funcall fn node nl loc)))))))))
-      (fnb root
-           (tile-origin (node-resolution root) loc1)
-           loc1 loc2))))
+(deftraverse-box create
+    "TODO Docstring"
+  writefn
+  nil
+  (create-lowform curloc kl1 kl2)
+  (create-root-form loc1))
+
+;; TODO The function `find-nodes-box' may have optional arg FINDFN. If it is nil then
+;; function collect and return found nodes.
+(deftraverse-box find
+    "TODO Docstring"
+  findfn
+  (funcall findfn curnode (resol cures curloc))
+  (funcall findfn curnode (resol cures loc)))
+
+;;; FIXME The function works incorrectly with existing dtree.
+;;; (progn (create-nodes-box "~/tmp/root/" (locat 2 0 0 0) (locat 2 1 1 0)
+;;;                          #'(lambda (n l) (declare (ignore n l))) 2)
+;;;        (create-nodes-box "~/tmp/root/" (locat 5 4 1 2) (locat 5 11 9 5)
+;;;                          #'(lambda (n l) (declare (ignore n l))) 3))
+;;; This should make the dtree whith resolution 5 but 8 is created.
+;; (defun create-nodes-box (root loc1 loc2 writefn)
+;;   "Create nodes in the box [LOC1; LOC2] from the node ROOT.
+;; Perform the box walking (see `walk-box') with the function
+;; `create-nodes'. Apply the function FN to the created node and the
+;; current location. The order of applying the function FN to created
+;; nodes is undefined. The resolution of created nodes is NODE-RES."
+;;   (symbol-macrolet
+;;       ((set-step (setq step
+;;                        (ilength (node-resolution
+;;                                  (create-node root l writefn))))))
+;;     (let* ((step)
+;;            (current)
+;;            (walk #'(lambda (l) set-step))
+;;            (begin #'(lambda (l)
+;;                       (declare (ignore l))
+;;                       (setq current walk))))
+;;       (setq current begin)
+;;       set-step
+;;       ;; TODO Move loc1 to tile origin.
+;;       (walk-box loc1 loc2
+;;                 #'(lambda (loc)
+;;                     (funcall current loc))
+;;                 #'(lambda () step)))))
+
+;; (defun find-nodes-box (root loc1 loc2 fn)
+;;   "Find nodes for the box [L1; L2] in the dtree ROOT.
+;; Perform the box walking (see `walk-box') in the dtree ROOT. Apply the
+;; function FN to each found node, the `tile' of the current location and
+;; the current location. The order of applying the function FN to found
+;; nodes is undefined.
+
+;; Please note! The current implementation is incomplete. the box [L1;
+;; L2] must have the size of entire image, i.e. L1 => (locat R 0 0...);
+;; L2 => (locat R (ilength R) (ilength R)...)."
+;;   (let ((maxres (locat-r loc1)))
+;;     (labels
+;;         ((fnb (node loc loc1 loc2)
+;;            (let ((loc-r (locat-r loc))
+;;                  (nr (node-resolution node)))
+;;              (if (>= loc-r maxres)
+;;                  (let ((loc (resol maxres loc)))
+;;                    (funcall fn node
+;;                             (tile (- maxres loc-r (- nr)) loc)
+;;                             loc))
+;;                  (find-nodes-walk-box
+;;                   nr loc1 loc2
+;;                   #'(lambda (nl l1 l2)
+;;                       (let ((loc (locat+ loc
+;;                                          (apply #'locat loc-r
+;;                                                 (locat-axes nl)))))
+;;                         (aif (kid-at node nl)
+;;                              (fnb it
+;;                                   (resol (node-resolution it) loc)
+;;                                   l1 l2)
+;;                              (funcall fn node nl loc)))))))))
+;;       (fnb root
+;;            (tile-origin (node-resolution root) loc1)
+;;            loc1 loc2))))
 
 ;;; TODO The function `optimize-dtree'
