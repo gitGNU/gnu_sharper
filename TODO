@@ -1,17 +1,15 @@
 -*- org -*-
 
-* TODO Rewrite [[file:src/tests/dtree.lisp::(defun%20walk-node-box-test][`walk-node-box']] tests
-* TODO Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
+* DONE Rewrite [[file:src/tests/dtree.lisp::(defun%20walk-node-box-test][`walk-node-box']] tests
+* DONE Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
 * TODO Fix `create-nodes-box'
 * TODO Fix `find-nodes-box'
-* TODO Fix the box limitation in find-nodes-box
-** TODO New tests for find-nodes-box and create-nodes-box
 * TODO Documentation and code clean up
 * TODO Move pyramid.lisp to tests
 * TODO User-defined nodes
 * TODO README: The description should be more simpler and clearer
   for people without prior knowledge of octrees, pyramids, etc.
-* TODO image.lisp - the dtree wrapper for working on multiresolution images
+* TODO image.lisp - the dtree wrapper for working with multiresolution images
 * TODO Teemer
 * TODO Signal typed errors rather than simple ones
 * TODO Look at exported symbols from the package `sharper'

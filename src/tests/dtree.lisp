@@ -230,73 +230,279 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
     (apply #'values (nreverse locs))))
 
 (deftest walk-node-box-test1
-    (walk-node-box-test 4 (locat 8 65 16 3) (locat 8 20 50 37))
+    (walk-node-box-test 5 (locat 8 65 16 3) (locat 8 20 50 37))
   ;; prebz
   ;; preby
   ;; prebx
-  ((4 1 1 0) (8 20 16 3) (8 255 255 255))
-  ((4 2 1 0) (8 0 16 3) (8 255 255 255))
-  ((4 3 1 0) (8 0 16 3) (8 255 255 255))
+  ((5 2 2 0) (3 4 0 3) (3 7 7 7))
+  ;; postbx
+  ((5 3 2 0) (3 0 0 3) (3 7 7 7))
+  ((5 4 2 0) (3 0 0 3) (3 7 7 7))
+  ((5 5 2 0) (3 0 0 3) (3 7 7 7))
+  ((5 6 2 0) (3 0 0 3) (3 7 7 7))
+  ((5 7 2 0) (3 0 0 3) (3 7 7 7))
   ;; preex
-  ((4 4 1 0) (8 0 16 3) (8 65 255 255))
+  ((5 8 2 0) (3 0 0 3) (3 1 7 7))
+  ;; postby
   ;; prebx
-  ((4 1 2 0) (8 20 0 3) (8 255 255 255))
-  ((4 2 2 0) (8 0 0 3) (8 255 255 255))
-  ((4 3 2 0) (8 0 0 3) (8 255 255 255))
+  ((5 2 3 0) (3 4 0 3) (3 7 7 7))
+  ;; postbx
+  ((5 3 3 0) (3 0 0 3) (3 7 7 7))
+  ((5 4 3 0) (3 0 0 3) (3 7 7 7))
+  ((5 5 3 0) (3 0 0 3) (3 7 7 7))
+  ((5 6 3 0) (3 0 0 3) (3 7 7 7))
+  ((5 7 3 0) (3 0 0 3) (3 7 7 7))
   ;; preex
-  ((4 4 2 0) (8 0 0 3) (8 65 255 255))
+  ((5 8 3 0) (3 0 0 3) (3 1 7 7))
+  ;; prebx
+  ((5 2 4 0) (3 4 0 3) (3 7 7 7))
+  ;; postbx
+  ((5 3 4 0) (3 0 0 3) (3 7 7 7))
+  ((5 4 4 0) (3 0 0 3) (3 7 7 7))
+  ((5 5 4 0) (3 0 0 3) (3 7 7 7))
+  ((5 6 4 0) (3 0 0 3) (3 7 7 7))
+  ((5 7 4 0) (3 0 0 3) (3 7 7 7))
+  ;; preex
+  ((5 8 4 0) (3 0 0 3) (3 1 7 7))
+  ;; prebx
+  ((5 2 5 0) (3 4 0 3) (3 7 7 7))
+  ;; postbx
+  ((5 3 5 0) (3 0 0 3) (3 7 7 7))
+  ((5 4 5 0) (3 0 0 3) (3 7 7 7))
+  ((5 5 5 0) (3 0 0 3) (3 7 7 7))
+  ((5 6 5 0) (3 0 0 3) (3 7 7 7))
+  ((5 7 5 0) (3 0 0 3) (3 7 7 7))
+  ;; preex
+  ((5 8 5 0) (3 0 0 3) (3 1 7 7))
   ;; preey
   ;; prebx
-  ((4 1 3 0) (8 20 0 3) (8 255 50 255))
-  ((4 2 3 0) (8 0 0 3) (8 255 50 255))
-  ((4 3 3 0) (8 0 0 3) (8 255 50 255))
+  ((5 2 6 0) (3 4 0 3) (3 7 2 7))
+  ;; postbx
+  ((5 3 6 0) (3 0 0 3) (3 7 2 7))
+  ((5 4 6 0) (3 0 0 3) (3 7 2 7))
+  ((5 5 6 0) (3 0 0 3) (3 7 2 7))
+  ((5 6 6 0) (3 0 0 3) (3 7 2 7))
+  ((5 7 6 0) (3 0 0 3) (3 7 2 7))
   ;; preex
-  ((4 4 3 0) (8 0 0 3) (8 65 50 255))
+  ((5 8 6 0) (3 0 0 3) (3 1 2 7))
+  ;; postbz
   ;; preby
   ;; prebx
-  ((4 1 1 1) (8 20 16 0) (8 255 255 255))
-  ((4 2 1 1) (8 0 16 0) (8 255 255 255))
-  ((4 3 1 1) (8 0 16 0) (8 255 255 255))
+  ((5 2 2 1) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 2 1) (3 0 0 0) (3 7 7 7))
+  ((5 4 2 1) (3 0 0 0) (3 7 7 7))
+  ((5 5 2 1) (3 0 0 0) (3 7 7 7))
+  ((5 6 2 1) (3 0 0 0) (3 7 7 7))
+  ((5 7 2 1) (3 0 0 0) (3 7 7 7))
   ;; preex
-  ((4 4 1 1) (8 0 16 0) (8 65 255 255))
+  ((5 8 2 1) (3 0 0 0) (3 1 7 7))
+  ;; postby
   ;; prebx
-  ((4 1 2 1) (8 20 0 0) (8 255 255 255))
-  ((4 2 2 1) (8 0 0 0) (8 255 255 255))
-  ((4 3 2 1) (8 0 0 0) (8 255 255 255))
+  ((5 2 3 1) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 3 1) (3 0 0 0) (3 7 7 7))
+  ((5 4 3 1) (3 0 0 0) (3 7 7 7))
+  ((5 5 3 1) (3 0 0 0) (3 7 7 7))
+  ((5 6 3 1) (3 0 0 0) (3 7 7 7))
+  ((5 7 3 1) (3 0 0 0) (3 7 7 7))
   ;; preex
-  ((4 4 2 1) (8 0 0 0) (8 65 255 255))
+  ((5 8 3 1) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 4 1) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 4 1) (3 0 0 0) (3 7 7 7))
+  ((5 4 4 1) (3 0 0 0) (3 7 7 7))
+  ((5 5 4 1) (3 0 0 0) (3 7 7 7))
+  ((5 6 4 1) (3 0 0 0) (3 7 7 7))
+  ((5 7 4 1) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 4 1) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 5 1) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 5 1) (3 0 0 0) (3 7 7 7))
+  ((5 4 5 1) (3 0 0 0) (3 7 7 7))
+  ((5 5 5 1) (3 0 0 0) (3 7 7 7))
+  ((5 6 5 1) (3 0 0 0) (3 7 7 7))
+  ((5 7 5 1) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 5 1) (3 0 0 0) (3 1 7 7))
   ;; preey
   ;; prebx
-  ((4 1 3 1) (8 20 0 0) (8 255 50 255))
-  ((4 2 3 1) (8 0 0 0) (8 255 50 255))
-  ((4 3 3 1) (8 0 0 0) (8 255 50 255))
+  ((5 2 6 1) (3 4 0 0) (3 7 2 7))
+  ;; postbx
+  ((5 3 6 1) (3 0 0 0) (3 7 2 7))
+  ((5 4 6 1) (3 0 0 0) (3 7 2 7))
+  ((5 5 6 1) (3 0 0 0) (3 7 2 7))
+  ((5 6 6 1) (3 0 0 0) (3 7 2 7))
+  ((5 7 6 1) (3 0 0 0) (3 7 2 7))
   ;; preex
-  ((4 4 3 1) (8 0 0 0) (8 65 50 255))
+  ((5 8 6 1) (3 0 0 0) (3 1 2 7))
+  ;; preby
+  ;; prebx
+  ((5 2 2 2) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 2 2) (3 0 0 0) (3 7 7 7))
+  ((5 4 2 2) (3 0 0 0) (3 7 7 7))
+  ((5 5 2 2) (3 0 0 0) (3 7 7 7))
+  ((5 6 2 2) (3 0 0 0) (3 7 7 7))
+  ((5 7 2 2) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 2 2) (3 0 0 0) (3 1 7 7))
+  ;; postby
+  ;; prebx
+  ((5 2 3 2) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 3 2) (3 0 0 0) (3 7 7 7))
+  ((5 4 3 2) (3 0 0 0) (3 7 7 7))
+  ((5 5 3 2) (3 0 0 0) (3 7 7 7))
+  ((5 6 3 2) (3 0 0 0) (3 7 7 7))
+  ((5 7 3 2) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 3 2) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 4 2) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 4 2) (3 0 0 0) (3 7 7 7))
+  ((5 4 4 2) (3 0 0 0) (3 7 7 7))
+  ((5 5 4 2) (3 0 0 0) (3 7 7 7))
+  ((5 6 4 2) (3 0 0 0) (3 7 7 7))
+  ((5 7 4 2) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 4 2) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 5 2) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 5 2) (3 0 0 0) (3 7 7 7))
+  ((5 4 5 2) (3 0 0 0) (3 7 7 7))
+  ((5 5 5 2) (3 0 0 0) (3 7 7 7))
+  ((5 6 5 2) (3 0 0 0) (3 7 7 7))
+  ((5 7 5 2) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 5 2) (3 0 0 0) (3 1 7 7))
+  ;; preey
+  ;; prebx
+  ((5 2 6 2) (3 4 0 0) (3 7 2 7))
+  ;; postbx
+  ((5 3 6 2) (3 0 0 0) (3 7 2 7))
+  ((5 4 6 2) (3 0 0 0) (3 7 2 7))
+  ((5 5 6 2) (3 0 0 0) (3 7 2 7))
+  ((5 6 6 2) (3 0 0 0) (3 7 2 7))
+  ((5 7 6 2) (3 0 0 0) (3 7 2 7))
+  ;; preex
+  ((5 8 6 2) (3 0 0 0) (3 1 2 7))
+  ;; preby
+  ;; prebx
+  ((5 2 2 3) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 2 3) (3 0 0 0) (3 7 7 7))
+  ((5 4 2 3) (3 0 0 0) (3 7 7 7))
+  ((5 5 2 3) (3 0 0 0) (3 7 7 7))
+  ((5 6 2 3) (3 0 0 0) (3 7 7 7))
+  ((5 7 2 3) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 2 3) (3 0 0 0) (3 1 7 7))
+  ;; postby
+  ;; prebx
+  ((5 2 3 3) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 3 3) (3 0 0 0) (3 7 7 7))
+  ((5 4 3 3) (3 0 0 0) (3 7 7 7))
+  ((5 5 3 3) (3 0 0 0) (3 7 7 7))
+  ((5 6 3 3) (3 0 0 0) (3 7 7 7))
+  ((5 7 3 3) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 3 3) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 4 3) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 4 3) (3 0 0 0) (3 7 7 7))
+  ((5 4 4 3) (3 0 0 0) (3 7 7 7))
+  ((5 5 4 3) (3 0 0 0) (3 7 7 7))
+  ((5 6 4 3) (3 0 0 0) (3 7 7 7))
+  ((5 7 4 3) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 4 3) (3 0 0 0) (3 1 7 7))
+  ;; prebx
+  ((5 2 5 3) (3 4 0 0) (3 7 7 7))
+  ;; postbx
+  ((5 3 5 3) (3 0 0 0) (3 7 7 7))
+  ((5 4 5 3) (3 0 0 0) (3 7 7 7))
+  ((5 5 5 3) (3 0 0 0) (3 7 7 7))
+  ((5 6 5 3) (3 0 0 0) (3 7 7 7))
+  ((5 7 5 3) (3 0 0 0) (3 7 7 7))
+  ;; preex
+  ((5 8 5 3) (3 0 0 0) (3 1 7 7))
+  ;; preey
+  ;; prebx
+  ((5 2 6 3) (3 4 0 0) (3 7 2 7))
+  ;; postbx
+  ((5 3 6 3) (3 0 0 0) (3 7 2 7))
+  ((5 4 6 3) (3 0 0 0) (3 7 2 7))
+  ((5 5 6 3) (3 0 0 0) (3 7 2 7))
+  ((5 6 6 3) (3 0 0 0) (3 7 2 7))
+  ((5 7 6 3) (3 0 0 0) (3 7 2 7))
+  ;; preex
+  ((5 8 6 3) (3 0 0 0) (3 1 2 7))
   ;; preez
   ;; preby
   ;; prebx
-  ((4 1 1 2) (8 20 16 0) (8 255 255 37))
-  ((4 2 1 2) (8 0 16 0) (8 255 255 37))
-  ((4 3 1 2) (8 0 16 0) (8 255 255 37))
+  ((5 2 2 4) (3 4 0 0) (3 7 7 5))
+  ;; postbx
+  ((5 3 2 4) (3 0 0 0) (3 7 7 5))
+  ((5 4 2 4) (3 0 0 0) (3 7 7 5))
+  ((5 5 2 4) (3 0 0 0) (3 7 7 5))
+  ((5 6 2 4) (3 0 0 0) (3 7 7 5))
+  ((5 7 2 4) (3 0 0 0) (3 7 7 5))
   ;; preex
-  ((4 4 1 2) (8 0 16 0) (8 65 255 37))
+  ((5 8 2 4) (3 0 0 0) (3 1 7 5))
+  ;; postby
   ;; prebx
-  ((4 1 2 2) (8 20 0 0) (8 255 255 37))
-  ((4 2 2 2) (8 0 0 0) (8 255 255 37))
-  ((4 3 2 2) (8 0 0 0) (8 255 255 37))
+  ((5 2 3 4) (3 4 0 0) (3 7 7 5))
+  ;; postbx
+  ((5 3 3 4) (3 0 0 0) (3 7 7 5))
+  ((5 4 3 4) (3 0 0 0) (3 7 7 5))
+  ((5 5 3 4) (3 0 0 0) (3 7 7 5))
+  ((5 6 3 4) (3 0 0 0) (3 7 7 5))
+  ((5 7 3 4) (3 0 0 0) (3 7 7 5))
   ;; preex
-  ((4 4 2 2) (8 0 0 0) (8 65 255 37))
+  ((5 8 3 4) (3 0 0 0) (3 1 7 5))
+  ;; prebx
+  ((5 2 4 4) (3 4 0 0) (3 7 7 5))
+  ;; postbx
+  ((5 3 4 4) (3 0 0 0) (3 7 7 5))
+  ((5 4 4 4) (3 0 0 0) (3 7 7 5))
+  ((5 5 4 4) (3 0 0 0) (3 7 7 5))
+  ((5 6 4 4) (3 0 0 0) (3 7 7 5))
+  ((5 7 4 4) (3 0 0 0) (3 7 7 5))
+  ;; preex
+  ((5 8 4 4) (3 0 0 0) (3 1 7 5))
+  ;; prebx
+  ((5 2 5 4) (3 4 0 0) (3 7 7 5))
+  ;; postbx
+  ((5 3 5 4) (3 0 0 0) (3 7 7 5))
+  ((5 4 5 4) (3 0 0 0) (3 7 7 5))
+  ((5 5 5 4) (3 0 0 0) (3 7 7 5))
+  ((5 6 5 4) (3 0 0 0) (3 7 7 5))
+  ((5 7 5 4) (3 0 0 0) (3 7 7 5))
+  ;; preex
+  ((5 8 5 4) (3 0 0 0) (3 1 7 5))
   ;; preey
   ;; prebx
-  ((4 1 3 2) (8 20 0 0) (8 255 50 37))
-  ((4 2 3 2) (8 0 0 0) (8 255 50 37))
-  ((4 3 3 2) (8 0 0 0) (8 255 50 37))
+  ((5 2 6 4) (3 4 0 0) (3 7 2 5))
+  ;; postbx
+  ((5 3 6 4) (3 0 0 0) (3 7 2 5))
+  ((5 4 6 4) (3 0 0 0) (3 7 2 5))
+  ((5 5 6 4) (3 0 0 0) (3 7 2 5))
+  ((5 6 6 4) (3 0 0 0) (3 7 2 5))
+  ((5 7 6 4) (3 0 0 0) (3 7 2 5))
   ;; preex
-  ((4 4 3 2) (8 0 0 0) (8 65 50 37)))
+  ((5 8 6 4) (3 0 0 0) (3 1 2 5)))
 
 (deftest walk-node-box-test2
     (walk-node-box-test 3 (locat 7 41 26 74) (locat 7 46 25 72))
-  ((3 2 1 4) (7 41 25 72) (7 46 26 74)))
+  ((3 2 1 4) (4 9 9 8) (4 14 10 10)))
 
 (defconstant +default-test-res+ 4)
 
@@ -304,11 +510,12 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
   (defun write-test-node (node loc &optional (push-node t) (res +default-test-res+))
     "TODO Docstring"
     (write-node node res 3)
-    (and push-node (push (list node loc) nodes)))
+    (and push-node (push (list (namestring node) loc) nodes)))
 
   (defun written-nodes ()
     "TODO Docstring"
-    (reverse nodes))
+    ;; Does the order matter?
+    (sort nodes #'string< :key #'car))
 
   (defun reset-written-nodes ()
     "TODO Docstring"
@@ -322,6 +529,11 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
      (mapcar #'(lambda (x)
                  (cons (namestring (car x)) (cdr x)))
              (written-nodes))))
+
+;;; Does the order matter?
+(defmacro deftest-sort (name form value)
+  "TODO Docstring"
+  `(deftest ,name ,form ,(sort value #'string< :key #'car)))
 
 ;;; Tests with the dtree root only
 ;;; There is no root
@@ -348,7 +560,8 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 ;;; TODO Check there is no any node out of the box
 (defmacro defboxtest35 (num root)
   "TODO Docstring"
-  `(deftest ,(symbolicate 'create-nodes-box-test (prin1-to-string num))
+  `(deftest-sort ,(symbolicate 'create-nodes-box-test
+                               (prin1-to-string num))
        (with-created-nodes
          ,@(unless root
                  '((ensure-directories-exist (dtree-root))
@@ -527,7 +740,8 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 (defmacro defboxtest46 (num root)
   "TODO Docstring"
-  `(deftest ,(symbolicate 'create-nodes-box-test (prin1-to-string num))
+  `(deftest-sort ,(symbolicate 'create-nodes-box-test
+                               (prin1-to-string num))
        (with-created-nodes
          ,@(unless root
                    '((ensure-directories-exist (dtree-root))
@@ -740,7 +954,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 ;;; Some kids are not created: on the box corners, sides and inside
 ;;; the box.  In some cases one kid is absent. In other cases groups
 ;;; of neighbor kids are absent.
-(deftest create-nodes-box-test8
+(deftest-sort create-nodes-box-test8
     (with-created-nodes
       (let ((l1 (locat 7 0 80 19))
             (l2 (locat 7 38 127 60)))
@@ -797,7 +1011,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
       (write-node it res 3))))
 
 ;;; Some kids are less than the target resolution.
-(deftest create-nodes-box-test9
+(deftest-sort create-nodes-box-test9
     (with-created-nodes
         (let ((l1 (locat 7 0 80 19))
               (l2 (locat 7 38 127 60)))
@@ -1957,7 +2171,8 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 (defmacro defboxtest1011 (num root)
   "TODO Docstring"
-  `(deftest ,(symbolicate 'create-nodes-box-test (prin1-to-string num))
+  `(deftest-sort ,(symbolicate 'create-nodes-box-test
+                               (prin1-to-string num))
        (with-created-nodes
            ,@(when (not root)
                '((ensure-directories-exist (dtree-root))
@@ -1995,7 +2210,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 (defboxtest1011 11 nil)
 
 ;;; Kids of kids are not created
-(deftest create-nodes-box-test12
+(deftest-sort create-nodes-box-test12
     (with-created-nodes
         (let ((l1 (locat 5 0 20 4))
               (l2 (locat 5 9 31 15)))
@@ -2055,7 +2270,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                                        nil nil res)))))))
 
 ;;; Some kids of the root do not have kids
-(deftest create-nodes-box-test14
+(deftest-sort create-nodes-box-test14
     (with-created-nodes
         (let ((l1 (locat 8 1 160 38))
               (l2 (locat 8 77 254 121)))
@@ -2168,7 +2383,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
    ("/home/alf/tmp/root/2036/2/" (5 8 30 14)) ("/home/alf/tmp/root/2036/3/" (5 8 30 14))))
 
 ;;; Some kids of the root have kids partially
-(deftest create-nodes-box-test15
+(deftest-sort create-nodes-box-test15
     (with-created-nodes
         (let* ((l1 (locat 10 0 640 152))
                (l2 (locat 10 319 1023 495))
@@ -4412,6 +4627,25 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 ;;; to the kid res.
 
 ;;; Test data
+
+;; (walk-box (resol 5 (locat 8 65 16 3))
+;;           (resol 5 (locat 8 20 50 37))
+;;           #'(lambda (l)
+;;               (princ `(,l)) (terpri))
+;;           1
+;;           (list #'(lambda (l) (princ ";; prebx") (terpri))
+;;                 #'(lambda (l) (princ ";; postbx") (terpri))
+;;                 #'(lambda (l) (princ ";; preex") (terpri))
+;;                 #'identity)
+;;           (list #'(lambda (l) (princ ";; preby") (terpri))
+;;                 #'(lambda (l) (princ ";; postby") (terpri))
+;;                 #'(lambda (l) (princ ";; preey") (terpri))
+;;                 #'identity)
+;;           (list #'(lambda (l) (princ ";; prebz") (terpri))
+;;                 #'(lambda (l) (princ ";; postbz") (terpri))
+;;                 #'(lambda (l) (princ ";; preez") (terpri))
+;;                 #'identity))
+
 ;; (let (nodes)
 ;;   (walk-box (resol 6 (locat 7 0 80 19))
 ;;             (resol 6 (locat 7 38 127 60))

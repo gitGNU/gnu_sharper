@@ -260,10 +260,12 @@ node at maximum available resolution and the location `resol''ed
 (defun walk-node-box (res loc1 loc2 fn)
   "TODO Docstring"
   (multiple-value-bind (loc1 loc2) (sort-box loc1 loc2)
-    (let* ((l1r (locat-r loc1))
+    (let* ((lr (- (locat-r loc1) res))
            (n (length (locat-axes loc1)))
-           (kidloc1 (copy-locat loc1))
-           (kidloc2 (maxloc l1r n)))
+           (tile1 (tile lr loc1))
+           (tile2 (tile lr loc2))
+           (kidloc1 (copy-locat tile1))
+           (kidloc2 (maxloc lr n)))
       (flet ((mkbnd (axis kidloc loc)
                "TODO Docstring"
                #'(lambda (l)
@@ -279,10 +281,10 @@ node at maximum available resolution and the location `resol''ed
                (loop for i from 0 below n
                   collect (let ((i i))
                             (list
-                             (mkbnd i kidloc1 loc1) ; Prebegin
-                             (mkbnd i kidloc1 (zeroloc l1r n)) ; Postbegin
-                             (mkbnd i kidloc2 loc2) ; Preend
-                             (mkbnd i kidloc2 (maxloc l1r n)))))))))) ; Postend
+                             (mkbnd i kidloc1 tile1) ; Prebegin
+                             (mkbnd i kidloc1 (zeroloc lr n)) ; Postbegin
+                             (mkbnd i kidloc2 tile2) ; Preend
+                             (mkbnd i kidloc2 (maxloc lr n)))))))))) ; Postend
 
 (defmacro deftraverse-box (name doc fname resform lowform &optional nodeform)
   "TODO Docstring"
@@ -303,17 +305,7 @@ node at maximum available resolution and the location `resol''ed
                 (let ((curloc (locat+ (resol cures parentloc)
                                       (apply #'locat cures (locat-axes l)))))
                   (if-kid l
-                          ;; TODO I need a var bound to target res
-                          ;; TODO Because `walk-node-box' have the
-                          ;; target res it should do this kid-tile
-                          ;; correction
-                          (let* ((res (locat-r loc1))
-                                 (loc (resol res curloc))
-                                 (k1a (locat-axes (tile (- res cures) kl1)))
-                                 (k2a (locat-axes (tile (- res cures) kl2))))
-                           (traverse-kid it curloc
-                                         (locat+ loc (apply #'locat res k1a))
-                                         (locat+ loc (apply #'locat res k2a))))
+                          (traverse-kid it curloc kl1 kl2)
                           ,lowform)))))))))
 
 (deftraverse-box create
@@ -330,70 +322,3 @@ node at maximum available resolution and the location `resol''ed
   findfn
   (funcall findfn curnode (resol cures curloc))
   (funcall findfn curnode (resol cures loc)))
-
-;;; FIXME The function works incorrectly with existing dtree.
-;;; (progn (create-nodes-box "~/tmp/root/" (locat 2 0 0 0) (locat 2 1 1 0)
-;;;                          #'(lambda (n l) (declare (ignore n l))) 2)
-;;;        (create-nodes-box "~/tmp/root/" (locat 5 4 1 2) (locat 5 11 9 5)
-;;;                          #'(lambda (n l) (declare (ignore n l))) 3))
-;;; This should make the dtree whith resolution 5 but 8 is created.
-;; (defun create-nodes-box (root loc1 loc2 writefn)
-;;   "Create nodes in the box [LOC1; LOC2] from the node ROOT.
-;; Perform the box walking (see `walk-box') with the function
-;; `create-nodes'. Apply the function FN to the created node and the
-;; current location. The order of applying the function FN to created
-;; nodes is undefined. The resolution of created nodes is NODE-RES."
-;;   (symbol-macrolet
-;;       ((set-step (setq step
-;;                        (ilength (node-resolution
-;;                                  (create-node root l writefn))))))
-;;     (let* ((step)
-;;            (current)
-;;            (walk #'(lambda (l) set-step))
-;;            (begin #'(lambda (l)
-;;                       (declare (ignore l))
-;;                       (setq current walk))))
-;;       (setq current begin)
-;;       set-step
-;;       ;; TODO Move loc1 to tile origin.
-;;       (walk-box loc1 loc2
-;;                 #'(lambda (loc)
-;;                     (funcall current loc))
-;;                 #'(lambda () step)))))
-
-;; (defun find-nodes-box (root loc1 loc2 fn)
-;;   "Find nodes for the box [L1; L2] in the dtree ROOT.
-;; Perform the box walking (see `walk-box') in the dtree ROOT. Apply the
-;; function FN to each found node, the `tile' of the current location and
-;; the current location. The order of applying the function FN to found
-;; nodes is undefined.
-
-;; Please note! The current implementation is incomplete. the box [L1;
-;; L2] must have the size of entire image, i.e. L1 => (locat R 0 0...);
-;; L2 => (locat R (ilength R) (ilength R)...)."
-;;   (let ((maxres (locat-r loc1)))
-;;     (labels
-;;         ((fnb (node loc loc1 loc2)
-;;            (let ((loc-r (locat-r loc))
-;;                  (nr (node-resolution node)))
-;;              (if (>= loc-r maxres)
-;;                  (let ((loc (resol maxres loc)))
-;;                    (funcall fn node
-;;                             (tile (- maxres loc-r (- nr)) loc)
-;;                             loc))
-;;                  (find-nodes-walk-box
-;;                   nr loc1 loc2
-;;                   #'(lambda (nl l1 l2)
-;;                       (let ((loc (locat+ loc
-;;                                          (apply #'locat loc-r
-;;                                                 (locat-axes nl)))))
-;;                         (aif (kid-at node nl)
-;;                              (fnb it
-;;                                   (resol (node-resolution it) loc)
-;;                                   l1 l2)
-;;                              (funcall fn node nl loc)))))))))
-;;       (fnb root
-;;            (tile-origin (node-resolution root) loc1)
-;;            loc1 loc2))))
-
-;;; TODO The function `optimize-dtree'
