@@ -2,11 +2,11 @@
 
 * DONE Rewrite [[file:src/tests/dtree.lisp::(defun%20walk-node-box-test][`walk-node-box']] tests
 * DONE Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
-* TODO Fix `create-nodes-box'
+* DONE Fix `create-nodes-box'
 * TODO Fix `find-nodes-box'
 * TODO Documentation and code clean up
-* TODO Move pyramid.lisp to tests
 * TODO User-defined nodes
+* TODO Move pyramid.lisp to tests
 * TODO README: The description should be more simpler and clearer
   for people without prior knowledge of octrees, pyramids, etc.
 * TODO image.lisp - the dtree wrapper for working with multiresolution images
@@ -20,7 +20,6 @@
   Maybe it should be generated from a template.
 
 * TODO Compile and test using ECL
-* TODO Generate ChangeLog from git log
 
 
 * What should be done before committing to master

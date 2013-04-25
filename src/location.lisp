@@ -79,12 +79,14 @@ Do not check the value of the resolution R."
 
 (declaim (inline locat-axis))
 (defun locat-axis (l n)
-  "Get the Nth axis of the location L."
+  "Get the Nth axis of the location L.
+N = 0, the first axis."
   (nth (1+ n) l))
 
 (declaim (inline (setf locat-axis)))
 (defun (setf locat-axis) (v l n)
-  "Set the Nth axis of the location L to the value V."
+  "Set the Nth axis of the location L to the value V.
+N = 0, the first axis."
   (setf (nth (1+ n) l) v))
 
 (declaim (inline copy-locat))

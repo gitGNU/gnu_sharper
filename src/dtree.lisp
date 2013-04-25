@@ -85,8 +85,7 @@ property list."
                           (aif (pathname-name p1)
                                (string= (namestring it) p2))))
                    ;; FIXME Remove all but directories with names as
-                   ;; numbers that less than the maximum number of
-                   ;; kids.
+                   ;; numbers
                    (or (s= p *node-properties-filename*)
                        (s= p *node-pyramid-filename*))))
              ;; TODO Use `cl-fad:walk-directory'.
@@ -190,12 +189,12 @@ the form ELSE."
                (,resvar 0))
            (labels ((,gtrav (,nodevar ,resvar ,@kidargs)
                       ,travbody))
-             ;; TODO Kidargs should be `let' clauses.
-             ;; Bind them at this point. Otherwise I need wrap entire
+             ;; TODO Kidargs should be `let' clauses.  Bind them at
+             ;; this point. Otherwise I need to wrap entire
              ;; traverse-node expression into the let form.
              ,travbody))))))
 
-;;; FIXME There is a little mess with type of nodes. Sometimes
+;;; FIXME There is a little mess with type of nodes.  Sometimes
 ;;; `create-nodes' and `find-node' return a string, sometimes a
 ;;; pathname.
 
@@ -294,19 +293,18 @@ node at maximum available resolution and the location `resol''ed
                                (length (locat-axes loc1))))
            (l1 loc1)
            (l2 loc2))
-       (traverse-node ,nodeform (locat-r loc1)
+       (traverse-node ,(aif nodeform it 'node) (locat-r loc1)
            curnode cures
            (parentloc l1 l2)
          ,resform
-         (let ((curnres (node-resolution curnode)))
-           (walk-node-box
-            curnres l1 l2
-            #'(lambda (l kl1 kl2)
-                (let ((curloc (locat+ (resol cures parentloc)
-                                      (apply #'locat cures (locat-axes l)))))
-                  (if-kid l
-                          (traverse-kid it curloc kl1 kl2)
-                          ,lowform)))))))))
+         (walk-node-box
+          (node-resolution curnode) l1 l2
+          #'(lambda (l kl1 kl2)
+              (let ((curloc (locat+ (resol cures parentloc)
+                                    (apply #'locat cures (locat-axes l)))))
+                (if-kid l
+                        (traverse-kid it curloc kl1 kl2)
+                        ,lowform))))))))
 
 (deftraverse-box create
     "TODO Docstring"
