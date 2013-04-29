@@ -209,7 +209,7 @@ the form ELSE."
       kid)
     ,@kidargs))
 
-(defmacro create-root-form (loc)
+(defmacro create-root-form ()
   "TODO Docstring"
   `(if (cl-fad:directory-exists-p node)
        node
@@ -244,7 +244,7 @@ If the root node is created the current location is NIL.
 
 Return the last created node.  If there is no one return NIL."
   (create-lowform)
-  (create-root-form loc))
+  (create-root-form))
 
 ;;; FIXME Return values of `find-node' should correlate with args to
 ;;; findfn passed by `find-nodes-box'.
@@ -311,12 +311,12 @@ node at maximum available resolution and the location `resol''ed
   writefn
   nil
   (create-lowform curloc kl1 kl2)
-  (create-root-form loc1))
+  (create-root-form))
 
 ;; TODO The function `find-nodes-box' may have optional arg FINDFN. If it is nil then
 ;; function collect and return found nodes.
 (deftraverse-box find
     "TODO Docstring"
   findfn
-  (funcall findfn curnode (resol cures curloc))
-  (funcall findfn curnode (resol cures loc)))
+  (funcall findfn curnode (unless (pathname-eq node curnode) parentloc))
+  (funcall findfn curnode curloc))
