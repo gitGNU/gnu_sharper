@@ -96,17 +96,19 @@ N = 0, the first axis."
 
 (declaim (inline zeroloc))
 (defun zeroloc (r axnum)
-  "TODO Docstring"
+  "Make zero location with resolution R and axes number AXNUM.
+Zero location is a location with all zero coordinates."
   (apply #'locat r (make-list axnum :initial-element 0)))
 
-;;; FIXME I don't like the name
+;;; I don't like the name
 (declaim (inline maxloc))
 (defun maxloc (r axnum)
-  "TODO Docstring"
+  "Make maximum location with resolution R and axes number AXNUM.
+Maximum location is a location every coordinate of which is equal
+to (1- (ilength R))."
   (apply #'locat r
          (make-list axnum :initial-element (1- (ilength r)))))
 
-;;; TODO Consider another name: scale
 (defun resol (r l)
   "Scale the location L to the resolution R."
   (assert-resol r)
@@ -155,7 +157,9 @@ is equivalent to
 ;;; TODO Resol the lesser locations res to the greatest one.  Make
 ;;; resol-to res-or-loc &rest locs
 (defun walk-box-ranges (l1 l2 &optional bnds)
-  "TODO Docstring"
+  "Make differences between coordinates of locations L1 and L2.
+Also make boundaries functions lists for the function `walk-box'.  Use
+boundaries function from the list BNDS if it is not NIL."
   (apply #'mapcar
          #'(lambda (a b &optional bnd)
              (let ((bnd (mapcar
@@ -175,7 +179,11 @@ is equivalent to
 
 ;;; TODO Add one step for each axis
 ;;; TODO Edit docstring
+;;; TODO What value do the function return? Check all functions that
+;;; use it.
 ;;; FIXME If there are no boundaries an error is occured
+;;; TODO Making the list BOUNDARIES is ugly and confusing. See
+;;; `walk-node-box'.
 (defun walk-box (l1 l2 fn &optional (step 1) &rest boundaries)
   "Apply the function FN to each location in the box [L1; L2].
 The box is specified by two corners: L1 and L2. Both corners are
@@ -228,12 +236,30 @@ At present, the walking performs only at resolution (locat-r L1)."
                                    :postbegin (mkbnd postbegin l2)
                                    :preend (mkbnd preend l1)
                                    :postend (mkbnd postend l2))
-                             (funcall fn (cons n axes)))))))
+                                (funcall fn (cons n axes)))))))
                (cons callfn ranges-bounds))
        nil))))
 
 (defun sort-box (l1 l2)
-  "TODO Docstring"
+  "Rearrange the box [L1; L2] to [NEAREST; FARTHEST].
+
+NEAREST and FARTHEST are the box corners that are nearest and farthest
+to the origin respectively.
+
+For example: L1 - the top-left corner, L2 - the bottom-right corner.
+
+   ^  L1         F
+   |   +--------+
+   |   |        |
+   |   |        |
+   |   |        |
+   |   +--------+
+   |  N         L2
+   |
+   +--------------->
+  O
+
+Return two values: the nearest corner, the farthest corner."
   (let (a1 a2)
     (mapc #'(lambda (rb)
               (push (car rb) a1)
@@ -272,23 +298,3 @@ function OP to one or more locations."
                                    ,op))
                           ops))))
   (defops + - * /))
-
-(defun tile-origin (r l)
-  "Return the location of the tile origin in the image.
-Split the image to tiles with the resolution R as the function `tile'
-does but return the location of the tile in the image which contains
-the location L."
-  (locat- l (apply #'locat
-                   (locat-r l)
-                   (locat-axes (tile r l)))))
-
-;; (defun move (loc axes &optional relative)
-;;   "TODO Docstring"
-;;   (map-axes loc ))
-
-;; (defun tile-box (r l l1 l2)
-;;   "Return the box [L1; L2] clipped to the tile with the location L.
-;; Split the image to tiles with the resolution R as the function `tile'
-;; does. Return the box clipped with boundaries of the tile which
-;; contains the location L. Return NIL if the tile and the box do not
-;; overlap.")

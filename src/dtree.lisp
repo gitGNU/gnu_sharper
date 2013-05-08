@@ -131,15 +131,6 @@ Return NIL if NODE does not have the kid. The location LOC is relative
 to the node."
   (kid node (kid-num node loc)))
 
-;;; TODO The function is not used
-(defun node-origin (loc &optional (node-res *default-node-resolution*))
-  "Return the origin the node which is specified by the location LOC.
-Return the tile origin with the resolution of the tile that is
-multiple to the node resolution NODE-RES. See the function
-`tile-origin'. "
-  (let ((loc (resol (ceil (locat-r loc) node-res) loc)))
-    (tile-origin node-res loc)))
-
 (defmacro traverse-node (node res nodevar resvar kidargs &body res-low-forms)
   "Traverse the dtree from the root NODE to the resolution RES.
 
@@ -218,7 +209,22 @@ the form ELSE."
               node)))
 
 (defmacro deftraverse-node (name args doc lowform &optional (nodeform 'node))
-  "TODO Docstring"
+  "Define the function NAME for the dtree one location traversal.
+
+The defined function takes: NODE - the dtree node from which the
+traversal is started; LOC - the target location; ARGS specifies
+additional arguments for the defined function.
+
+DOC is a documentation string for the function.
+
+The form LOWFORM is evaluated if the function can not traverse to the
+target location, e.g. there is no node at the target location.
+
+The form NODEFORM is evaluated at the traversal beginning, e.g. the
+function `create-node' creates the dtree root if the root NODE does
+not exist.
+
+See also `traverse-node'."
   `(defun ,(symbolicate name '-node) (node loc ,@args)
      ,doc
      (traverse-node ,nodeform (locat-r loc) curnode cures ()
@@ -257,7 +263,46 @@ node at maximum available resolution and the location `resol''ed
   (values curnode curloc))
 
 (defun walk-node-box (res loc1 loc2 fn)
-  "TODO Docstring"
+  "Walk the box [LOC1; LOC2] at resolution RES.
+
+At each location make the box for the kid at the current location
+[KIDLOC1; KIDLOC2].  The function assume the resolution of the kid is
+LOC1-resolution - RES.
+
+For example.  Let the node which we wanted to walk has resolution 2.
+The target box is [(4 2 2); (4 9 11)].  Because we should walk at the
+node's resolution the walking box is [(2 0 0); (2 2 2)].  The node may
+have a kid at each location.  But the box for the kid differs from the
+target box.  The box for kids at boundaries is clipped.  The box for
+kids inside the target box is [(kres 0 0); (kres kmax kmax)], where
+kres is kid's resolution, kmax = (ilength kres) - 1.  Because we do
+not know the resolution of the kid at current resolution (it is the
+job of the callback function FN to check the kid) assume the maximum
+possible for the target box resolution: LOC1-resolution - RES, 4 - 2 =
+2.
+
++----+----+----+----+  RES = 2
+|0   |1   |2   |3   |  LOC1, LOC2 = (4 2 2), (4 1 3)
+|loc1|    |    |    |
+|  * |....|..  |    |  Kids boxes
+|  . |    | .  |    |  kid0  => [(2 2 2); (2 3 3)]
++----+----+----+----+  kid1  => [(2 0 2); (2 3 3)]
+|4 . |5   |6.  |7   |  kid2  => [(2 0 2); (2 1 3)]
+|  . |    | .  |    |  kid4  => [(2 2 0); (2 3 3)]
+|  . |    | .  |    |  kid5  => [(2 0 0); (2 3 3)]
+|  . |    | .  |    |  kid6  => [(2 0 0); (2 1 3)]
++----+----+----+----+  kid8  => [(2 2 0); (2 3 3)]
+|8 . |9   |10  |11  |  kid9  => [(2 0 0); (2 3 3)]
+|  . |    | .  |    |  kid10 => [(2 0 0); (2 1 3)]
+|  . |    |loc2|    |
+|  . |....|.*  |    |
++----+----+----+----+
+|    |    |    |    |
+|    |    |    |    |
+|    |    |    |    |
+|    |    |    |    |
++----+----+----+----+
+"
   (multiple-value-bind (loc1 loc2) (sort-box loc1 loc2)
     (let* ((lr (- (locat-r loc1) res))
            (n (length (locat-axes loc1)))
@@ -266,7 +311,7 @@ node at maximum available resolution and the location `resol''ed
            (kidloc1 (copy-locat tile1))
            (kidloc2 (maxloc lr n)))
       (flet ((mkbnd (axis kidloc loc)
-               "TODO Docstring"
+               "Make a boundary function for `walk-box'"
                #'(lambda (l)
                    (declare (ignore l))
                    (setf (locat-axis kidloc axis)
@@ -286,7 +331,29 @@ node at maximum available resolution and the location `resol''ed
                              (mkbnd i kidloc2 (maxloc lr n)))))))))) ; Postend
 
 (defmacro deftraverse-box (name doc fname resform lowform &optional nodeform)
-  "TODO Docstring"
+  "Define the function NAME for the dtree box traversal.
+
+The defined function takes: NODE - the dtree node from which the
+traversal is started; LOC1, LOC2 - the target box; ARGS specifies
+additional arguments for the defined function.
+
+DOC is a documentation string for the function.
+
+The dtree box traversal algorithm.
+
+1. Walk the current node with the target box and its resolution.
+2. Check the kid at each location.
+3. If the kid is created evaluate RESFORM.
+4. Otherwise evaluate LOWFORM.
+
+The form NODEFORM is evaluated at the traversal beginning, e.g. the
+function `create-nodes-box' creates the dtree root if the root NODE does
+not exist.
+
+The macro is used to define two functions: `create-nodes-box' and
+`find-nodes-box'.
+
+See also `walk-node-box' and `traverse-node'."
   ;; TODO Consider shorter names create-box and find-box
   `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,fname)
      (let ((parentloc (zeroloc 1
@@ -307,16 +374,29 @@ node at maximum available resolution and the location `resol''ed
                         ,lowform))))))))
 
 (deftraverse-box create
-    "TODO Docstring"
+    "Create nodes in the box [LOC1; LOC2].
+
+The dtree root is NODE.  If it does not exist create it.  Do not
+recreate any already created nodes.  Use the function WRITEFN to
+create nodes data.  The function WRITEFN should take two parameters:
+the directory of the currently created node and its parent location.
+
+See also the macro `deftraverse-box'."
   writefn
   nil
   (create-lowform curloc kl1 kl2)
   (create-root-form))
 
-;; TODO The function `find-nodes-box' may have optional arg FINDFN. If it is nil then
-;; function collect and return found nodes.
+;; TODO The parameter FINDFN may be optional.  If it is nil then the
+;; function `find-nodes-box' collect and return a list of found nodes.
 (deftraverse-box find
-    "TODO Docstring"
+    "Find nodes in the box [LOC1; LOC2].
+
+The dtree root is NODE.  At each found node call the function FINDFN.
+The function WRITEFN should take two parameters: the found node and
+its parent location.
+
+See also the macro `deftraverse-box'."
   findfn
   (funcall findfn curnode (unless (pathname-eq node curnode) parentloc))
   (funcall findfn curnode curloc))

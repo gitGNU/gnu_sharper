@@ -45,7 +45,7 @@
 (declaim (inline group))
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun group (l n)
-    "TODO Docstring."
+    "Group the list L to sublists of N elements."
     (when (plusp n)
       (loop with l1 = l
          until (endp l1)
@@ -171,7 +171,10 @@ Use expressions PREBEGIN, POSTBEGIN, PREEND, POSTEND as follows.
 - Evaluate POSTEND just after the last iteration.
 - If no iterations are performed evaluate PREBEGIN then POSTEND.
 
-TODO Add notice that TEST evaluates in advance against BODY."
+If you rely on side effects in BODY made by TEST note that TEST is
+evaluated two times before the first evaluation of BODY, so the TEST
+evaluation is ahead of the BODY evaluation by one iteration.  Thus we
+determine when to evaluate PREEND."
   (with-gensyms (gbody gpreend)
     (flet ((lamb (v b &optional e)
              `(let ((,var ,v))
@@ -267,7 +270,19 @@ Otherwise, return (* NUMBER (ceiling NUMBER/DIVISOR))."
 ;;; Types
 
 (defmacro fcoerce (obj &optional llist &body clauses)
-  "TODO Docstring."
+  "Convert the object OBJ to a function if it is not.
+LLIST is a lambda-list for the created function.  CLAUSES is the
+following list:
+  (TEST1 FORM1 TEST2 FORM2 ... TESTN FORMN [FORMD]),
+
+If the expression TEST1 is non-`nil' then create a function with FORM1
+as its body, otherwise if TEST2 is non-`nil' create a function with
+FORM2 and so on.  If all tests including the last TESTN are `nil'
+create a function with optional FORMD.
+
+Before conversion bind the variable IT to the result of OBJ
+evaluation, so IT is visible to all tests and to the created
+function."
   `(let ((it ,obj))
     (cond
       ((functionp it) it)
