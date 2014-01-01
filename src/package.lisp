@@ -19,9 +19,15 @@
 
 (defpackage #:sharper
   (:use #:common-lisp #:cl-fad)
+  (:import-from #:cl-fad
+                #:pathname-as-directory
+                #:file-exists-p
+                #:directory-exists-p)
   (:import-from #:alexandria
                 #:with-gensyms
-                #:symbolicate)
+                #:symbolicate
+                #:read-file-into-byte-vector
+                #:write-byte-vector-into-file)
   (:export
    ;; Utils
    #:it
@@ -71,4 +77,6 @@
    #:create-node
    #:find-node
    #:create-nodes-box
-   #:find-nodes-box))
+   #:find-nodes-box
+   ;; Image
+   #:walk-image-box))

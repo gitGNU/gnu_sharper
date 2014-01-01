@@ -3372,6 +3372,8 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                    (cons (namestring (car x)) (cdr x)))
                (found-nodes))))
 
+;;; TODO Add test if we do not have the dtree
+
 ;;; The box resolution is equal to the root resolution
 ;;; TODO `find-node' returns found nodes only if they at the target
 ;;; resolution. Why here findfn always gets two args.

@@ -38,7 +38,7 @@
   (if x (cons y z) z))
 
 (declaim (inline last*))
-(defun last1 (l)
+(defun last* (l)
   "Return car of the last cons of the list L."
   (car (last l)))
 
@@ -95,7 +95,7 @@ otherwise to else-value. If else-value is not supported it has value
 
 The form
 
-  (iflet test
+  (if~A test
        ((var1 then1 else1)
         (var2 then2))
      body)
@@ -108,7 +108,7 @@ is equivalent to the form
         body)
       (~A ((var1 else1)
            (var2 nil))
-        body))." let-op let-op)
+        body))." let-op let-op let-op)
           (let (then else)
             (dolist (b bindings)
               (destructuring-bind (v th &optional el) b
@@ -154,6 +154,8 @@ is equivalent to the form
       while ,test
       do (progn ,@body)))
 
+;;; It would be nice to have several variables:
+;;; (for ((x 1 y 2) test next) ...)
 (defmacro for
     ((var begin test next &key prebegin postbegin preend postend)
      &body body)
@@ -225,7 +227,7 @@ Return the pathname DIR without parent directories as the second
 value."
   (let ((struct (pathname-directory dir)))
     (values (make-pathname :directory (butlast struct))
-            (last1 struct))))
+            (last* struct))))
 
 ;;; FIXME (pathname-eq "~/tmp/" "/home/user/tmp/") => NIL
 (defun pathname-eq (p1 p2 &rest more)
@@ -237,6 +239,13 @@ argument MORE to compare more than two pathnames."
    (every #'(lambda (p)
               (string= s p))
           (mapcar #'namestring (cons p2 more)))))
+
+(defun rename-directory (old new)
+  "Rename the directory OLD to NEW"
+  #+clisp (ext:rename-directory old new)
+  #+sbcl (eq new (rename-file old new))
+  ;; TODO Signal an error for other implementations
+  )
 
 ;;; Numbers
 
@@ -334,6 +343,8 @@ corresponding argument of the function `open'. Its default value is
 :ERROR."
   (map-file #'identity filename if-does-not-exist))
 
+;; FIXME It is inconvenient to write one object.  You have to wrap it
+;; into a list (write-file (list obj) file)
 (defun write-file (list filename &optional (if-exists :error)
                    (delimiter #'terpri))
   "Write objects in the list LIST to the file FILENAME.

@@ -30,7 +30,8 @@
   :components ((:file "package")
                (:file "utils")
                (:file "location")
-               (:file "dtree")))
+               (:file "dtree")
+               (:file "image")))
 
 (defmethod perform ((o test-op) (c (eql (find-system :sharper-test))))
   (declare (ignorable o c))

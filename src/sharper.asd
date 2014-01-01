@@ -27,4 +27,5 @@
                (:file "utils")
                (:file "location")
                (:file "pyramid")
-               (:file "dtree")))
+               (:file "dtree")
+               (:file "image")))

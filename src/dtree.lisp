@@ -98,7 +98,7 @@ Return NIL if the node NODE does not have the kid."
         (kids node)
         :key #'(lambda (p)
                  ;; TODO We must handle symlinks!
-                 (last1 (pathname-directory p)))
+                 (last* (pathname-directory p)))
         :test #'string=))
 
 ;;; TODO Rename to node-res
@@ -202,7 +202,7 @@ the form ELSE."
 
 (defmacro create-root-form ()
   "TODO Docstring"
-  `(if (cl-fad:directory-exists-p node)
+  `(if (directory-exists-p node)
        node
        (progn (ensure-directories-exist node)
               (funcall writefn node nil)
@@ -330,7 +330,8 @@ possible for the target box resolution: LOC1-resolution - RES, 4 - 2 =
                              (mkbnd i kidloc2 tile2) ; Preend
                              (mkbnd i kidloc2 (maxloc lr n)))))))))) ; Postend
 
-(defmacro deftraverse-box (name doc fname resform lowform &optional nodeform)
+;;; TODO How to remove NODEFORM?
+(defmacro deftraverse-box (name doc args resform lowform &optional nodeform)
   "Define the function NAME for the dtree box traversal.
 
 The defined function takes: NODE - the dtree node from which the
@@ -355,11 +356,14 @@ The macro is used to define two functions: `create-nodes-box' and
 
 See also `walk-node-box' and `traverse-node'."
   ;; TODO Consider shorter names create-box and find-box
-  `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,fname)
+  `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,@args)
+     ,doc
      (let ((parentloc (zeroloc 1
                                (length (locat-axes loc1))))
            (l1 loc1)
-           (l2 loc2))
+           (l2 loc2)
+           (k11)
+           (k2))
        (traverse-node ,(aif nodeform it 'node) (locat-r loc1)
            curnode cures
            (parentloc l1 l2)
@@ -379,10 +383,11 @@ See also `walk-node-box' and `traverse-node'."
 The dtree root is NODE.  If it does not exist create it.  Do not
 recreate any already created nodes.  Use the function WRITEFN to
 create nodes data.  The function WRITEFN should take two parameters:
-the directory of the currently created node and its parent location.
+the directory of the currently created node and the parent location of
+the node.
 
 See also the macro `deftraverse-box'."
-  writefn
+  (writefn)
   nil
   (create-lowform curloc kl1 kl2)
   (create-root-form))
@@ -393,10 +398,17 @@ See also the macro `deftraverse-box'."
     "Find nodes in the box [LOC1; LOC2].
 
 The dtree root is NODE.  At each found node call the function FINDFN.
-The function WRITEFN should take two parameters: the found node and
-its parent location.
+If the target resolution is not available call the optional function
+LOWFN.  Default value of LOWFN is equal to FINDFN.  The functions
+should take the following parameters: the found node, its parent
+location and its box (two locations).
 
-See also the macro `deftraverse-box'."
-  findfn
-  (funcall findfn curnode (unless (pathname-eq node curnode) parentloc))
-  (funcall findfn curnode curloc))
+See also the macro `deftraverse-box'.
+
+TODO Document kl1 kl2"
+  (findfn &optional (lowfn findfn))
+  (funcall findfn curnode
+           (unless
+               (pathname-eq node curnode) parentloc)
+           kl1 kl2)
+  (funcall lowfn curnode curloc kl1 kl2))

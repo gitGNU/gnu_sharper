@@ -4,12 +4,23 @@
 * DONE Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
 * DONE Fix `create-nodes-box'
 * DONE Documentation and code clean up
-* TODO image.lisp - the dtree wrapper for working with multiresolution images
+* TODO image.lisp
+  The dtree wrapper for working with multiresolution images.  The
+  wrapper consist of the macro `walk-node-box' and macros that use it:
+  `update-low' and `without-tiles'.
+
 * TODO Fix `find-nodes-box'
-* TODO User-defined nodes
+* TODO dtree.lisp: create/find-nodes definition macro
+  The macro should define create/find-nodes functions which use
+  write/read nodes data functions from lexical scope.  The macro is
+  intended to simplify dtree node functions usage.
 * TODO Move pyramid.lisp to tests
-* TODO README: The description should be more simpler and clearer
-  for people without prior knowledge of octrees, pyramids, etc.
+* TODO Simplify README
+  The description should be more simpler and clearer for people
+  without prior knowledge of octrees, pyramids, etc.
+* TODO Fix sharper-magick
+* TODO Quicklisp
+  Add Sharper to Quicklisp
 * TODO Teemer
 * TODO Signal typed errors rather than simple ones
 * TODO Look at exported symbols from the package `sharper'
@@ -18,8 +29,21 @@
 * TODO README file should contain a road map
 * TODO README file duplicates function description and other information
   Maybe it should be generated from a template.
+* TODO GIMP plugin for image auto manipulation
+  The plugin should record changes that made user on low/middle
+  resolution images and apply them on high resolution images.
 
-* TODO Compile and test using ECL
+* TODO Lime - distributed image
+
+* TODO Portability
+  Compile and test using free/open Common Lisp implementations
+  - [ ] ABCL
+  - [ ] CCL
+  - [X] CLISP
+  - [ ] CMUCL
+  - [ ] ECL
+  - [ ] MKCL
+  - [X] SBCL
 
 
 * What should be done before committing to master
