@@ -2,19 +2,18 @@
 
 * DONE Rewrite [[file:src/tests/dtree.lisp::(defun%20walk-node-box-test][`walk-node-box']] tests
 * DONE Fix [[file:src/dtree.lisp::(defun walk-node-box][`walk-node-box']]
-* DONE Fix `create-nodes-box'
-* DONE Documentation and code clean up
+* TODO Fix `find-nodes-box'
+* TODO Fix `create-nodes-box'
 * TODO image.lisp
   The dtree wrapper for working with multiresolution images.  The
   wrapper consist of the macro `walk-node-box' and macros that use it:
   `update-low' and `without-tiles'.
-
-* TODO Fix `find-nodes-box'
 * TODO dtree.lisp: create/find-nodes definition macro
   The macro should define create/find-nodes functions which use
   write/read nodes data functions from lexical scope.  The macro is
   intended to simplify dtree node functions usage.
 * TODO Move pyramid.lisp to tests
+* TODO Documentation and code clean up
 * TODO Simplify README
   The description should be more simpler and clearer for people
   without prior knowledge of octrees, pyramids, etc.

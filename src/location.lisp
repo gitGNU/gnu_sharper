@@ -20,6 +20,9 @@
 ;; Raster images can be represented by a regular grid. All cells of
 ;; the grid have equal sides and the length of each side is 1.
 
+;; FIXME Use _coodinate_ rather than _axis_.  Axis is a line.
+;; Coordinate is the range from a point on the axis to the origin.
+
 ;; A particular cell location in space can be defined by the list of
 ;; axes, i.e. ranges from the image origin to the cell on each side
 ;; of the grid.
@@ -138,7 +141,7 @@ is equivalent to
 (defun tile (r l)
   "Split the image to tiles with the resolution R.
 Find the tile which contains the location L and return the location L
-relative to it.
+relative to its origin.
 
 The form
 
@@ -298,3 +301,17 @@ function OP to one or more locations."
                                    ,op))
                           ops))))
   (defops + - * /))
+
+(defun move (loc &rest deltas)
+  "Move the location LOC."
+  (map-axes #'(lambda (x)
+                (+ x (pop deltas)))
+            loc))
+
+(defun move* (loc &rest locs)
+  "Move the location LOC using coords as deltas from each location in LOCS."
+  (reduce #'(lambda (l d)
+              (apply #'move l d))
+          locs
+          :key #'locat-axes
+          :initial-value loc))

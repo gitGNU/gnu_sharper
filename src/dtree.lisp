@@ -117,19 +117,42 @@ dtree."
           0)))
 
 (declaim (inline kid-num))
-(defun kid-num (node loc)
-  "Calculate the kid number of the node NODE at the location LOC.
-The function does not check presence of the kid. It calculates what
-the kid number should be at the location LOC. Note that the location
-LOC is relative to the node."
-  (unfold (tile (node-resolution node) loc)))
+(defun kid-num (node-res loc)
+  "The kid number at LOC of nodes with resolution NODE-RES.
+`tile' the image with NODE-RES and `unfold' the result.
+
+For example.  The image has resolution 3.  Nodes resolution is 2.  The
+location (3 6 3).  Then, the node 1 has the target kid and the kid
+location in the node 1 is (2 1 2).  The kid number in the node 1 is
+\(unfold (locat 2 1 2)) => 9.
+
++----+----+
+|0   |1.  |
+|    | .  |
+|    |.*  |
+|    |    |
++----+----+
+|2   |3   |
+|    |    |
+|    |    |
+|    |    |
++----+----+
+"
+  (unfold (tile node-res loc)))
 
 (declaim (inline kid-at))
 (defun kid-at (node loc)
   "Get the kid of the node NODE at the location LOC.
-Return NIL if NODE does not have the kid. The location LOC is relative
-to the node."
-  (kid node (kid-num node loc)))
+Return NIL if NODE does not have the kid."
+  (kid node (kid-num (node-resolution node) loc)))
+
+(defun kid-pathname (parent loc)
+  "Make a pathname of the kid at LOC using its PARENT pathname."
+  (make-pathname
+   :directory
+   (nconc (pathname-directory parent)
+          (list (prin1-to-string
+                 (kid-num (node-resolution parent) loc))))))
 
 (defmacro traverse-node (node res nodevar resvar kidargs &body res-low-forms)
   "Traverse the dtree from the root NODE to the resolution RES.
@@ -193,8 +216,7 @@ the form ELSE."
 (defmacro create-lowform (&rest kidargs)
   "TODO Docstring"
   `(traverse-kid
-    (let ((kid (pathname
-                (format nil "~A~D/" curnode (kid-num curnode curloc)))))
+    (let ((kid (kid-pathname curnode curloc)))
       (ensure-directories-exist kid)
       (funcall writefn kid curloc)
       kid)
@@ -271,11 +293,11 @@ LOC1-resolution - RES.
 
 For example.  Let the node which we wanted to walk has resolution 2.
 The target box is [(4 2 2); (4 9 11)].  Because we should walk at the
-node's resolution the walking box is [(2 0 0); (2 2 2)].  The node may
+node resolution the walking box is [(2 0 0); (2 2 2)].  The node may
 have a kid at each location.  But the box for the kid differs from the
 target box.  The box for kids at boundaries is clipped.  The box for
 kids inside the target box is [(kres 0 0); (kres kmax kmax)], where
-kres is kid's resolution, kmax = (ilength kres) - 1.  Because we do
+kres is the kid resolution, kmax = (ilength kres) - 1.  Because we do
 not know the resolution of the kid at current resolution (it is the
 job of the callback function FN to check the kid) assume the maximum
 possible for the target box resolution: LOC1-resolution - RES, 4 - 2 =
@@ -371,6 +393,7 @@ See also `walk-node-box' and `traverse-node'."
          (walk-node-box
           (node-resolution curnode) l1 l2
           #'(lambda (l kl1 kl2)
+              ;; TODO Use move*
               (let ((curloc (locat+ (resol cures parentloc)
                                     (apply #'locat cures (locat-axes l)))))
                 (if-kid l
@@ -409,6 +432,20 @@ TODO Document kl1 kl2"
   (findfn &optional (lowfn findfn))
   (funcall findfn curnode
            (unless
-               (pathname-eq node curnode) parentloc)
+               (pathname= node curnode) parentloc)
            kl1 kl2)
   (funcall lowfn curnode curloc kl1 kl2))
+
+(defun move-dtree (dtree parent &optional loc)
+  "Move DTREE to PARENT and make it as PARENT's kid at LOC.
+if LOC is nil do not rename DTREE.  Return the kid if LOC is non-nil,
+otherwise the new pathname of DTREE."
+  (if (pathname= dtree parent)
+      dtree
+      (rename-directory
+       dtree
+       (if loc
+           (kid-pathname parent loc)
+           (make-pathname :directory
+                          (nconc (pathname-directory parent)
+                                 (list dtree)))))))

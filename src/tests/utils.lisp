@@ -120,3 +120,9 @@
       (push var *testvals*)
       nil)
   ((PREBEGIN 5) (PREEND 5) 5 (POSTBEGIN 5) (POSTEND 5)))
+
+;;; If the old and the new directory are the same `rename-directory'
+;;; do not rise an error but return the old directory.
+(deftest rename-directory-test
+    (rename-directory "/tmp/" "/tmp/")
+  "/tmp/")

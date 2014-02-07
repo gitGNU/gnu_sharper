@@ -221,6 +221,7 @@ determine when to evaluate PREEND."
   (merge-pathnames file
                    (pathname-as-directory dir)))
 
+;;; TODO Make basename, dirnames analogues
 (defun dirup (dir)
   "Return the parent directory of the pathname DIR.
 Return the pathname DIR without parent directories as the second
@@ -230,7 +231,7 @@ value."
             (last* struct))))
 
 ;;; FIXME (pathname-eq "~/tmp/" "/home/user/tmp/") => NIL
-(defun pathname-eq (p1 p2 &rest more)
+(defun pathname= (p1 p2 &rest more)
   "Return T if P1 and P2 are equal pathnames.
 Both arguments are converted to strings by `namestring' and compared
 with `string=' so P1 and P2 can be strings or pathnames. Use the
@@ -240,12 +241,15 @@ argument MORE to compare more than two pathnames."
               (string= s p))
           (mapcar #'namestring (cons p2 more)))))
 
+;; FIXME The function can't move directories to another devices at
+;; least for SBCL.
 (defun rename-directory (old new)
-  "Rename the directory OLD to NEW"
+  "Rename the directory OLD to NEW.
+Return NEW directory."
   #+clisp (ext:rename-directory old new)
   #+sbcl (eq new (rename-file old new))
   ;; TODO Signal an error for other implementations
-  )
+  new)
 
 ;;; Numbers
 

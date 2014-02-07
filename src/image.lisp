@@ -85,24 +85,13 @@ dtree nodes which are should be created upon image write operations.")
                                :if-does-not-exist :create)
   tile)
 
-(defun temp-image (path)
-  "Return a temporary image pathname relative to PATH"
-  (pathname-as-directory (dir+file path "tmp")))
-
-;;; TODO The node may be removed if it has no kids and one sets all
-;;; its tiles to the default value.
-
-(defun tmp2kid (node loc)
-  "Rename the temp image to the kid of NODE at the location LOC.
-Also remove empty nodes."
-  ;; TODO Remove empty nodes
-  (rename-directory (temp-image node)
-                    (pathname-as-directory
-                     (dir+file node (prin1-to-string (kid-num node loc))))))
-
-;;; Use it for removing or kid converting
-;;; Maybe scan-dtree in dtree.lisp?
-(defun remove-dtree-if (dtree fn))
+(defun temp-image (dir)
+  "Return a temporary image pathname relative to DIR.
+If DIR does not exist return it.  In such a case, the temporary image
+become a new dtree root."
+  (if (directory-exists-p path)
+      (pathname-as-directory (dir+file path "tmp"))
+      path))
 
 (defun write-props (node)
   "Write properties for NODE."
@@ -112,70 +101,79 @@ Also remove empty nodes."
               (dir+file node *node-properties-filename*)
               :supersede))
 
-(defmacro with-tilevars (vars &body body)
-  "Do BODY with tile variables names VARS.
-The following variables a bound to the tile variables name: TODO add
-var names"
-  `(destructuring-bind (&optional
-                        (tilev 'tile)
-                        (tileresv 'tileres)
-                        (tilelocv 'tileloc)
-                        (bl1v 'bl1)
-                        (bl2v 'bl2)) vars
-     ,@body))
+(defmacro with-tilevars (node loc parentloc k1 k2 &body body)
+  "Do BODY with tile variables: TILE, TILERES, TILELOC, BL1, BL2."
+  (with-gensyms (lres ploc gloc gnode)
+    `(let* ((,gnode ,node)
+            (,lres (locat-r ,loc))
+            (,ploc ,parentloc)
+            (tileres (- ,lres (locat-r ,ploc)))
+            (,gloc (resol ,lres ,ploc))
+            (bl1 (move* ,gloc k1))
+            (bl2 (move* ,gloc k2)))
+       (symbol-macrolet ((tile (node-tile ,gnode ,lres)))
+         ,@body))))
 
-(defun mkfindlowfns (targetres vars node loc l1 l2 findform lowform)
-  "TODO Doc"
-  (let ((gtargetres (gensym)))
-    (with-tilevars vars
-      (flet ((mkfn (form)
-               `#'(lambda (,node ,@args)
-                    (let* ((,gtargetres ,targetres)
-                           (,tileresv ,`(- ,gtargetres (locat-r ,loc)))
-                           (,tilelocv (resol ,gtargetres ,loc))
-                           (,bl1v ,l1)
-                           (,bl2v ,l2))
-                      (symbol-macrolet
-                          ((,tilev ,`(node-tile ,node ,tileresv)))
-                        ,form)))))
-        (list (mkfn findform) (mkfn lowform))))))
-
-(defmacro walk-image-box ((dtree loc1 loc2 &rest vars)
+(defmacro walk-image-box ((dtree loc1 loc2)
                           &body form1-and-form2)
-  "Walk the box [L1; L2] in the image DTREE.
-If the current tile's data available evaluate the first form of
-FORM1-AND-FORM2.  Otherwise evaluate the second one.
+  "Walk the box [LOC1; LOC2] in the image DTREE.
+FORM1-AND-FORM2 is destructured with the lambda-list
+
+  (FORM1 &optional (FORM2 FORM1)).
+
+If the current tile's data available evaluate FORM1.  Otherwise
+evaluate the second one.
 
 The following variables available in scope of the forms.
 
-Default variable name                  Bound to
+Variable name          Bound to
 
-      TILE             The current tile's data if it is available.
-                       Otherwise nil.
+   TILE          The current tile's data if it is available.
+                 Otherwise nil.
 
-      TILERES          The tile resolution.
+   TILERES       The tile resolution.
 
-      TILELOC          The tile location in the image.
+   TILELOC       The tile location in the image.
 
-      BL1, BL2         The box [L1; L2] clipped to the tile size."
-  (destructuring-bind (form1 form2) form1-and-form2
-    (with-gensyms (node loc l1 l2 gloc1)
+   BL1, BL2      The box [LOC1; LOC2] clipped to the tile size.
+
+TILE is generalized variable.  If `setf' it to the new value the value
+is written as the tile's data.  If `setf' TILE to nil the tile's data
+is deleted."
+  ;; TODO If TILE is deleted check the other tiles and kids of its
+  ;; node.  If the node has no tiles and kids delete it.
+  (destructuring-bind (form1 &optional (form2 form1)) form1-and-form2
+    (with-gensyms (gloc1 tmp node parentloc kl1 kl2 nodec kl1c rm)
       `(let ((,gloc1 ,loc1))
-         (find-nodes-box dtree ,gloc1 l2
-                         ,@(mkfindlowfns
-                            (locat-r gloc1) vars node loc l1 l2
-                            `(if (file-exists-p (tile-file ,node ,tileresv))
-                                 ,form1
-                                 ,form2)
-                            `(progn
-                               (create-nodes-box
-                                (temp-image ,node) ,l1 ,l2
-                                #'(lambda (,node ,loc ,l1 ,l2)
-                                    (write-props ,node)
-                                    ,(with-tilevars vars
-                                       `(setq ,tileresv ?
-                                              ,tilelocv ?
-                                              ,bl1v ?
-                                              ,bl2v ?))
-                                    ,form2))
-                               rm)))))))
+         (find-nodes-box
+          ,dtree ,gloc1 ,loc2
+          #'(lambda (,node ,parentloc ,kl1 ,kl2)
+              (with-tilevars ,node ,gloc1 ,parentloc ,kl1 ,kl2
+                (if (file-exists-p (tile-file ,node tileres))
+                    ,form1
+                    ,form2)))
+          #'(lambda (,node ,parentloc ,kl1 ,kl2)
+              (let* ((,tmp (temp-image ,node))
+                     (,rm #'(lambda ()
+                              (delete-directory-and-files ,tmp))))
+                (create-nodes-box
+                 ,tmp ,kl1 ,kl2
+                 #'(lambda (,nodec ,parentloc ,kl1c ,kl2)
+                     (write-props ,nodec)
+                     (with-tilevars ,nodec ,loc1 ,parentloc ,kl1c ,kl2
+                       (flet (((setf node-tile) (tile ,nodec tileres)
+                                "Set tile and rename TMP to NODE's kid."
+                                (setf ,rm #'(lambda ()
+                                              ;; TODO Remove empty nodes
+                                              (move-dtree ,tmp ,node ,kl1))
+                                      (node-tile ,nodec tileres) tile)))
+                         ,form2))))
+                (funcall ,rm))))))))
+
+;; Description of VARS for `walk-image-box' binding of which is not
+;; implemented yet.
+;;
+;; VARS is a list of variables names which are available in scope of the
+;; forms.  If some variable name is nil it has the default name.  If the
+;; variable list is nil, all variables have default names.  The following
+;; table describes the variables binding.
