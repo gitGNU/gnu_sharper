@@ -17,18 +17,14 @@
 
 ;;; Commentary:
 
-;; Raster images can be represented by a regular grid. All cells of
-;; the grid have equal sides and the length of each side is 1.
-
-;; FIXME Use _coodinate_ rather than _axis_.  Axis is a line.
-;; Coordinate is the range from a point on the axis to the origin.
+;; Raster images can be represented by a regular grid.  All cells of
+;; the grid have equal sides and the size of each side is 1.
 
 ;; A particular cell location in space can be defined by the list of
-;; axes, i.e. ranges from the image origin to the cell on each side
-;; of the grid.
+;; coordinates in the grid.
 
 ;; Because raster images can have different resolutions, that is the
-;; length of a side, we should store resolution in the location to be
+;; size of a side, we should store resolution in the location to be
 ;; able to compare and scale images with different resolutions. Note
 ;; that we do not need to store resolution of each side because we
 ;; have the regular grid and it is sufficient to store the maximum
@@ -51,46 +47,55 @@
           "Resolution R must be greater or equal to 1 ~
            but ~D was given" r))
 
-(declaim (inline ilength))
-(defun ilength (r)
-  "Return the image length with the resolution R on one axis.
-Do not check the value of the resolution R."
+(declaim (inline isize))
+(defun isize (r)
+  "Return the image size with the resolution R.
+The image size is the size of each side of the image.
+
++----+
+|    |
+|    | isize => 4
+|    |
+|    |
++----+
+
+Sizes of the sides are always equal.  The resolution R is not checked
+for correct values."
   (expt 2 r))
 
 (defun locat (r x &rest more)
   "Make a location with coordinates (X . MORE) and the resolution R."
   (assert-resol r)
-  (let ((axes (list* x more))
-        (l (ilength r)))
+  (let ((coords (list* x more))
+        (l (isize r)))
    (mapc #'(lambda (x)
              (if (>= (abs x) l)
-              (error "The value of some axis is ~D,~%~
-                      which is greater or equal to the image length ~D."
+              (error "The value of some coordinate is ~D,~%~
+                      which is greater or equal to the image size ~D."
                      x l)))
-         axes)
-   (cons r axes)))
+         coords)
+   (cons r coords)))
 
 (declaim (inline locat-r))
 (defun locat-r (l)
   "Get resolution of the location L."
   (car l))
 
-(declaim (inline locat-axes))
-(defun locat-axes (l)
-  "Get the axes list of the location L."
-  (cdr l))
+(declaim (inline coord))
+(defun coord (l &optional n)
+  "Get coords list of L or Nth coord when N is non-nil.
+The first coord number is 0."
+  (if n
+      (nth (1+ n) l)
+      (cdr l)))
 
-(declaim (inline locat-axis))
-(defun locat-axis (l n)
-  "Get the Nth axis of the location L.
-N = 0, the first axis."
-  (nth (1+ n) l))
-
-(declaim (inline (setf locat-axis)))
-(defun (setf locat-axis) (v l n)
-  "Set the Nth axis of the location L to the value V.
-N = 0, the first axis."
-  (setf (nth (1+ n) l) v))
+(declaim (inline (setf coord)))
+(defun (setf coord) (v l &optional n)
+  "Set coords list of L or Nth coord when N is non-nil.
+The first coord number is 0."
+  (if n
+      (setf (nth (1+ n) l) v)
+      (setf (cdr l) (coord (apply #'locat (locat-r l) v)))))
 
 (declaim (inline copy-locat))
 (defun copy-locat (l)
@@ -99,42 +104,40 @@ N = 0, the first axis."
 
 (declaim (inline zeroloc))
 (defun zeroloc (r axnum)
-  "Make zero location with resolution R and axes number AXNUM.
+  "Make zero location with resolution R and coords number AXNUM.
 Zero location is a location with all zero coordinates."
   (apply #'locat r (make-list axnum :initial-element 0)))
 
 ;;; I don't like the name
 (declaim (inline maxloc))
 (defun maxloc (r axnum)
-  "Make maximum location with resolution R and axes number AXNUM.
+  "Make maximum location with resolution R and coords number AXNUM.
 Maximum location is a location every coordinate of which is equal
-to (1- (ilength R))."
+to (1- (isize R))."
   (apply #'locat r
-         (make-list axnum :initial-element (1- (ilength r)))))
+         (make-list axnum :initial-element (1- (isize r)))))
 
 (defun resol (r l)
   "Scale the location L to the resolution R."
   (assert-resol r)
-  (let ((n (ilength (- (locat-r l) r))))
+  (let ((n (isize (- (locat-r l) r))))
     (apply #'locat r (mapcar #'(lambda (x)
                                  (truncate (/ x n)))
-                             (locat-axes l)))))
+                             (coord l)))))
 
 (defun unfold (l)
   "Reduce the number of dimensions of the image to one.
-Return the result axis.
-
 The form
 
   (unfold (locat r x y z))
 
 is equivalent to
 
-  (+ (* z (ilength r) (ilength r)) (* y (ilength r)) x)."
-  (let ((m (ilength (locat-r l)))
-        (n (length (locat-axes l))))
+  (+ (* z (isize r) (isize r)) (* y (isize r)) x)."
+  (let ((m (isize (locat-r l)))
+        (n (length (coord l))))
     (reduce #'+
-            (reverse (locat-axes l))
+            (reverse (coord l))
             :key #'(lambda (x)
                      (* x (expt m (decf n)))))))
 
@@ -149,13 +152,13 @@ The form
 
 is equivalent to
 
-  ((rem 1 (ilength 1))
-   (rem 2 (ilength 1))
-   (rem 5 (ilength 1)))."
+  ((rem 1 (isize 1))
+   (rem 2 (isize 1))
+   (rem 5 (isize 1)))."
   (assert-resol r)
-  (let ((n (ilength r)))
+  (let ((n (isize r)))
    (apply #'locat r (mapcar #'(lambda (x) (rem x n))
-                            (locat-axes l)))))
+                            (coord l)))))
 
 ;;; TODO Resol the lesser locations res to the greatest one.  Make
 ;;; resol-to res-or-loc &rest locs
@@ -176,11 +179,11 @@ boundaries function from the list BNDS if it is not NIL."
                (if (< a b)
                    (list a b bnd)
                    (list b a bnd))))
-         (locat-axes l1)
-         (locat-axes l2)
+         (coord l1)
+         (coord l2)
          (when bnds (list bnds))))
 
-;;; TODO Add one step for each axis
+;;; TODO Add one step for each coord
 ;;; TODO Edit docstring
 ;;; TODO What value do the function return? Check all functions that
 ;;; use it.
@@ -209,10 +212,10 @@ The walking is performed in the following way:
   the first axis.
 
 At present, the walking performs only at resolution (locat-r L1)."
-  (flet ((mkloc (axes) (apply #'locat (locat-r l1) axes)))
+  (flet ((mkloc (coords) (apply #'locat (locat-r l1) coords)))
     (let* ((stepfn (fcoerce step))
-           (callfn #'(lambda (axes)
-                       (funcall fn (mkloc axes))))
+           (callfn #'(lambda (coords)
+                       (funcall fn (mkloc coords))))
            (ranges-bounds (walk-box-ranges l1 l2 boundaries))
            (corners (apply #'mapcar #'list ranges-bounds))
            (l1 (mkloc (car corners)))
@@ -226,26 +229,25 @@ At present, the walking performs only at resolution (locat-r L1)."
                                          preend
                                          postend))
                        range-bound
-                     #'(lambda (axes)
+                     #'(lambda (coords)
                          (macrolet ((mkbnd (bname l)
                                       `(funcall
                                         ,bname
                                         (mkloc (append
-                                                (butlast (locat-axes ,l)
-                                                         (1+ (length axes)))
-                                                (cons n axes))))))
+                                                (butlast (coord ,l)
+                                                         (1+ (length coords)))
+                                                (cons n coords))))))
                            (for (n begin (<= n end) (+ n (funcall stepfn))
                                    :prebegin (mkbnd prebegin l1)
                                    :postbegin (mkbnd postbegin l2)
                                    :preend (mkbnd preend l1)
                                    :postend (mkbnd postend l2))
-                                (funcall fn (cons n axes)))))))
+                             (funcall fn (cons n coords)))))))
                (cons callfn ranges-bounds))
        nil))))
 
 (defun sort-box (l1 l2)
   "Rearrange the box [L1; L2] to [NEAREST; FARTHEST].
-
 NEAREST and FARTHEST are the box corners that are nearest and farthest
 to the origin respectively.
 
@@ -271,8 +273,8 @@ Return two values: the nearest corner, the farthest corner."
     (values (apply #'locat (locat-r l1) (nreverse a1))
             (apply #'locat (locat-r l2) (nreverse a2)))))
 
-(defun map-axes (fn l &rest more)
-  "Apply the function FN to each axis of the location L.
+(defun map-coords (fn l &rest more)
+  "Apply the function FN to each coord of the location L.
 Use MORE locations if they are supplied.
 
 The function FN must take the number of arguments equal to the number
@@ -283,15 +285,15 @@ equal then locations are `resol'ed to the maximum one."
     (apply #'locat r
            (apply #'mapcar fn
                   (mapcar #'(lambda (l)
-                              (locat-axes (resol r l)))
+                              (coord (resol r l)))
                           ls)))))
 
 (defmacro def-locat-op (name op)
   "Define the operation OP to be perfomed on locations.
-Define the function NAME that applies the function `map-axes' with the
+Define the function NAME that applies the function `map-coords' with the
 function OP to one or more locations."
   `(defun ,name (l &rest more)
-     (apply #'map-axes #',op l more)))
+     (apply #'map-coords #',op l more)))
 
 (macrolet ((defops (&rest ops)
              `(progn
@@ -304,14 +306,14 @@ function OP to one or more locations."
 
 (defun move (loc &rest deltas)
   "Move the location LOC."
-  (map-axes #'(lambda (x)
-                (+ x (pop deltas)))
-            loc))
+  (map-coords #'(lambda (x)
+                  (+ x (pop deltas)))
+              loc))
 
 (defun move* (loc &rest locs)
   "Move the location LOC using coords as deltas from each location in LOCS."
   (reduce #'(lambda (l d)
               (apply #'move l d))
           locs
-          :key #'locat-axes
+          :key #'coord
           :initial-value loc))

@@ -327,17 +327,17 @@ possible for the target box resolution: LOC1-resolution - RES, 4 - 2 =
 "
   (multiple-value-bind (loc1 loc2) (sort-box loc1 loc2)
     (let* ((lr (- (locat-r loc1) res))
-           (n (length (locat-axes loc1)))
+           (n (length (coord loc1)))
            (tile1 (tile lr loc1))
            (tile2 (tile lr loc2))
            (kidloc1 (copy-locat tile1))
            (kidloc2 (maxloc lr n)))
-      (flet ((mkbnd (axis kidloc loc)
+      (flet ((mkbnd (coord kidloc loc)
                "Make a boundary function for `walk-box'"
                #'(lambda (l)
                    (declare (ignore l))
-                   (setf (locat-axis kidloc axis)
-                         (locat-axis loc axis)))))
+                   (setf (coord kidloc coord)
+                         (coord loc coord)))))
         (apply #'walk-box (resol res loc1) (resol res loc2)
                #'(lambda (l)
                    (funcall fn l
@@ -381,7 +381,7 @@ See also `walk-node-box' and `traverse-node'."
   `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,@args)
      ,doc
      (let ((parentloc (zeroloc 1
-                               (length (locat-axes loc1))))
+                               (length (coord loc1))))
            (l1 loc1)
            (l2 loc2)
            (k11)
@@ -395,7 +395,7 @@ See also `walk-node-box' and `traverse-node'."
           #'(lambda (l kl1 kl2)
               ;; TODO Use move*
               (let ((curloc (locat+ (resol cures parentloc)
-                                    (apply #'locat cures (locat-axes l)))))
+                                    (apply #'locat cures (coord l)))))
                 (if-kid l
                         (traverse-kid it curloc kl1 kl2)
                         ,lowform))))))))
