@@ -76,6 +76,7 @@ for correct values."
          coords)
    (cons r coords)))
 
+;; TODO Rename to `locatr'
 (declaim (inline locat-r))
 (defun locat-r (l)
   "Get resolution of the location L."

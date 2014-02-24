@@ -18,13 +18,12 @@
 ;;; Commentary:
 
 ;; The multiresolution raster image or pyramid is a set of images
-;; which represents the original image with several levels of
-;; details. The highest level represents the image at maximum
-;; resolution, i.e. the original image. The previous level
-;; represents half-scaled version of the image. The previous of
-;; previous level is a half-scaled version of the previous
-;; representation. The first level resolution is 1, two elements per
-;; image side.
+;; which represents the original image with several levels of details.
+;; The highest level represents the image at maximum resolution,
+;; i.e. the original image.  The previous level represents half-scaled
+;; version of the image.  The previous of previous level is a
+;; half-scaled version of the previous representation.  The first
+;; level resolution is 1, two elements per image side.
 
 ;; The directory tree decomposes the image to smaller size pyramids.
 
@@ -154,136 +153,6 @@ Return NIL if NODE does not have the kid."
           (list (prin1-to-string
                  (kid-num (node-resolution parent) loc))))))
 
-(defmacro traverse-node (node res nodevar resvar kidargs &body res-low-forms)
-  "Traverse the dtree from the root NODE to the resolution RES.
-
-The dtree traversal is the same for many functions such as
-`find-node', `create-node', `find-nodes-box' etc.  This macro helps to
-make dtree traversal functions.  The algorithm consists of the
-following steps:
-
-1. Add the root NODE resolution to the resolution sum which is zero at
-the beginning.
-
-2. If the sum is equal or greater than the target resolution RES
-evaluate the first form of the forms RES-LOW-FORMS.
-
-3. Otherwise evaluate the rest of the forms RES-LOW-FORMS.
-
-In scope of the forms two local macros are bound: `traverse-kid' and
-`if-kid'.
-
-`traverse-kid' kid &rest kidargs
-
-Continue the traversal from the current node to its kid KID, i.e. do
-the step 1 of the algorithm with the kid as the root and the current
-resolution sum which is implicitly passed to the recursive call.  Also
-pass to it other user-defined arguments KIDARGS.
-
-`if-kid' loc then else
-
-If the kid of the current node at the location LOC is present evaluate
-the form THEN and bound the kid to the symbol IT, otherwise evaluate
-the form ELSE."
-  (with-gensyms (gtrav gres)
-    (let* ((resform (car res-low-forms))
-           (lowform `(progn ,@(cdr res-low-forms)))
-           (travbody
-            `(let ((,resvar (+ ,resvar (node-resolution ,nodevar))))
-               (if (>= ,resvar ,gres)
-                   ,resform
-                   ,lowform))))
-      `(macrolet ((if-kid (loc then &optional else)
-                    `(aif (kid-at ,',nodevar ,loc)
-                          ,then ,else))
-                  (traverse-kid (kid ,@kidargs)
-                    `(,',gtrav ,kid ,',resvar ,,@kidargs)))
-         (let ((,gres ,res)
-               (,nodevar ,node)
-               (,resvar 0))
-           (labels ((,gtrav (,nodevar ,resvar ,@kidargs)
-                      ,travbody))
-             ;; TODO Kidargs should be `let' clauses.  Bind them at
-             ;; this point. Otherwise I need to wrap entire
-             ;; traverse-node expression into the let form.
-             ,travbody))))))
-
-;;; FIXME There is a little mess with type of nodes.  Sometimes
-;;; `create-nodes' and `find-node' return a string, sometimes a
-;;; pathname.
-
-;;; TODO Why `create-lowform' and `create-nodeform' are macros?
-(defmacro create-lowform (&rest kidargs)
-  "TODO Docstring"
-  `(traverse-kid
-    (let ((kid (kid-pathname curnode curloc)))
-      (ensure-directories-exist kid)
-      (funcall writefn kid curloc)
-      kid)
-    ,@kidargs))
-
-(defmacro create-root-form ()
-  "TODO Docstring"
-  `(if (directory-exists-p node)
-       node
-       (progn (ensure-directories-exist node)
-              (funcall writefn node nil)
-              node)))
-
-(defmacro deftraverse-node (name args doc lowform &optional (nodeform 'node))
-  "Define the function NAME for the dtree one location traversal.
-
-The defined function takes: NODE - the dtree node from which the
-traversal is started; LOC - the target location; ARGS specifies
-additional arguments for the defined function.
-
-DOC is a documentation string for the function.
-
-The form LOWFORM is evaluated if the function can not traverse to the
-target location, e.g. there is no node at the target location.
-
-The form NODEFORM is evaluated at the traversal beginning, e.g. the
-function `create-node' creates the dtree root if the root NODE does
-not exist.
-
-See also `traverse-node'."
-  `(defun ,(symbolicate name '-node) (node loc ,@args)
-     ,doc
-     (traverse-node ,nodeform (locat-r loc) curnode cures ()
-       curnode
-       (let ((curloc (resol cures loc)))
-         (if-kid curloc
-                 (traverse-kid it)
-                 ,lowform)))))
-
-;; TODO Replace WRITEFN with corresponding closure in ROOT.
-(deftraverse-node create (writefn)
-  "Create the node at the location LOC in the dtree NODE.
-Create parent nodes and the root NODE if they are not present.  If the
-node at requested location is already exist do not recreate it
-Also for its parents.
-
-Make directories for each created node and call the function WRITEFN
-which is responsible to create data for the node.  The function should
-take the following arguments: the created node, the current location.
-The current location is the requested location LOC but in case of
-creation of parent nodes it has lower resolution (parent resolution).
-If the root node is created the current location is NIL.
-
-Return the last created node.  If there is no one return NIL."
-  (create-lowform)
-  (create-root-form))
-
-;;; FIXME Return values of `find-node' should correlate with args to
-;;; findfn passed by `find-nodes-box'.
-(deftraverse-node find ()
-  "Find the node at the location LOC in the dtree NODE.
-Return two values: the found node and the requested location LOC.  If
-there is no any node at requested resolution (locat-r LOC) return the
-node at maximum available resolution and the location `resol''ed
-\(scaled) to the resolution."
-  (values curnode curloc))
-
 (defun walk-node-box (res loc1 loc2 fn)
   "Walk the box [LOC1; LOC2] at resolution RES.
 
@@ -352,13 +221,106 @@ possible for the target box resolution: LOC1-resolution - RES, 4 - 2 =
                              (mkbnd i kidloc2 tile2) ; Preend
                              (mkbnd i kidloc2 (maxloc lr n)))))))))) ; Postend
 
-;;; TODO How to remove NODEFORM?
-(defmacro deftraverse-box (name doc args resform lowform &optional nodeform)
-  "Define the function NAME for the dtree box traversal.
+(defmacro traverse-node (node res nodevar resvar kidargs
+                         &body (resform . lowforms))
+  "Traverse the dtree from the root NODE to the resolution RES.
+The dtree traversal is the same for many functions such as
+`find-node', `create-node', `find-nodes-box' etc.  This macro helps to
+make dtree traversal functions.  The algorithm consists of the
+following steps:
 
-The defined function takes: NODE - the dtree node from which the
-traversal is started; LOC1, LOC2 - the target box; ARGS specifies
-additional arguments for the defined function.
+1. Add the root NODE resolution to the resolution sum which is zero at
+the beginning.
+
+2. If the sum is equal or greater than the target resolution RES
+evaluate RESFORM.
+
+3. Otherwise evaluate LOWFORMS.
+
+In scope of the forms two local macros are bound: `traverse-kid' and
+`if-kid'.
+
+`traverse-kid' kid &rest kidargs
+
+Continue the traversal from the current node to its KID, i.e. do the
+step 1 of the algorithm with the kid as the root and the current
+resolution sum which is implicitly passed to the recursive call.  Also
+pass to it other user-defined arguments KIDARGS.
+
+`if-kid' loc then else
+
+If the kid of the current node at the location LOC is present evaluate
+the form THEN and bound the kid to the symbol IT, otherwise evaluate
+the form ELSE."
+  (with-gensyms (gtrav gres)
+    (let* ((lowform `(progn ,@lowforms))
+           (travbody
+            `(let ((,resvar (+ ,resvar (node-resolution ,nodevar))))
+               (if (>= ,resvar ,gres)
+                   ,resform
+                   ,lowform))))
+      `(macrolet ((if-kid (loc then &optional else)
+                    `(aif (kid-at ,',nodevar ,loc)
+                          ,then ,else))
+                  (traverse-kid (kid ,@(mapcar #'car kidargs))
+                    `(,',gtrav ,kid ,',resvar ,,@(mapcar #'car kidargs))))
+         (let ((,gres ,res)
+               (,nodevar ,node)
+               (,resvar 0)
+               ,@kidargs)
+           (labels ((,gtrav (,nodevar ,resvar ,@(mapcar #'car kidargs))
+                      ,travbody))
+             ,travbody))))))
+
+;;; FIXME There is a little mess with type of nodes.  Sometimes
+;;; `create-nodes' and `find-node' return a string, sometimes a
+;;; pathname.
+
+(defmacro deftraverse (name (loc . funargs) doc kidargs
+                       &body (noform resform lowform))
+  "Define the function NAME which performs dtree traversal.
+The first function parameter a dtree node is bound to the symbol NODE.
+The rest of parameters are the location LOC and FUNARGS.  DOC is the
+function documentation string.  KIDARGS, RESFORM and LOWFORM are
+passed to `traverse-node' macro.  NOFORM is evaluated when there is no
+NODE."
+  `(defun ,name (node ,loc ,@funargs)
+     ,doc
+     (aif (if (directory-exists-p node)
+              node
+              ,noform)
+          (traverse-node it (locat-r ,loc) curnode cures ,kidargs
+            ,resform
+            ,lowform))))
+
+(defmacro deftraverse-node (name args doc noform resform lowform)
+  "Define the function NAME for the dtree one location traversal.
+The first and second parameters of the function, the dtree node and
+the target location are bound to the symbol NODE and LOC respectively.
+The rest of parameters are ARGS.
+
+DOC is a documentation string for the function.
+
+NOFORM is evaluated when there is no NODE.  RESFORM and LOWFORM are
+passed to `traverse-node' macro.
+
+The macro is used to define two functions: `create-node' and
+`find-node'.
+
+See also `deftraverse' and `deftraverse-box'."
+  `(deftraverse ,(symbolicate name '-node) (loc ,@args) ,doc ()
+     ,noform
+     curnode
+     (let ((curloc (resol cures loc)))
+       (if-kid curloc
+               (traverse-kid it)
+               ,lowform))))
+
+(defmacro deftraverse-box (name args doc noform resform lowform)
+  "Define the function NAME for the dtree box traversal.
+The function parameters are the dtree node, the target box.  The
+parameters are bound to symbols: NODE and LOC1, LOC2 respectively.
+The additional parameters are ARGS.
 
 DOC is a documentation string for the function.
 
@@ -369,67 +331,96 @@ The dtree box traversal algorithm.
 3. If the kid is created evaluate RESFORM.
 4. Otherwise evaluate LOWFORM.
 
-The form NODEFORM is evaluated at the traversal beginning, e.g. the
-function `create-nodes-box' creates the dtree root if the root NODE does
-not exist.
+NOFORM is evaluated when there is no NODE.
 
 The macro is used to define two functions: `create-nodes-box' and
 `find-nodes-box'.
 
-See also `walk-node-box' and `traverse-node'."
+See also `walk-node-box', `deftraverse' and `deftraverse-node'."
   ;; TODO Consider shorter names create-box and find-box
-  `(defun ,(symbolicate name '-nodes-box) (node loc1 loc2 ,@args)
-     ,doc
-     (let ((parentloc (zeroloc 1
-                               (length (coord loc1))))
-           (l1 loc1)
-           (l2 loc2)
-           (k11)
-           (k2))
-       (traverse-node ,(aif nodeform it 'node) (locat-r loc1)
-           curnode cures
-           (parentloc l1 l2)
-         ,resform
-         (walk-node-box
-          (node-resolution curnode) l1 l2
-          #'(lambda (l kl1 kl2)
-              ;; TODO Use move*
-              (let ((curloc (locat+ (resol cures parentloc)
-                                    (apply #'locat cures (coord l)))))
-                (if-kid l
-                        (traverse-kid it curloc kl1 kl2)
-                        ,lowform))))))))
+  `(deftraverse ,(symbolicate name '-nodes-box) (loc1 loc2 ,@args) ,doc
+       ((parentloc (zeroloc 1
+                            (length (coord loc1))))
+        (kl1 loc1)
+        (kl2 loc2))
+     ,noform
+     ,resform
+     (walk-node-box
+      (node-resolution curnode) kl1 kl2
+      #'(lambda (l kl1 kl2)
+          (let ((curloc (move* (resol cures parentloc) l)))
+            (if-kid l
+                    (traverse-kid it curloc kl1 kl2)
+                    ,lowform))))))
 
-(deftraverse-box create
-    "Create nodes in the box [LOC1; LOC2].
+(macrolet ((defcreate (type doc &rest args)
+             (let ((noform
+                    '(progn (ensure-directories-exist node)
+                      (funcall writefn node nil)
+                      node))
+                   (lowform
+                    '(traverse-kid
+                      (let ((kid (kid-pathname curnode curloc)))
+                        (ensure-directories-exist kid)
+                        (funcall writefn kid curloc)
+                        kid))))
+               `(,(symbolicate 'deftraverse- type)
+                  create
+                  (writefn)
+                  ,doc
+                  ,noform
+                  curnode
+                  (,@lowform ,@args)))))
 
+  (defcreate node
+      "Create the node at the location LOC in the dtree NODE.
+Create parent nodes and the root NODE if they are not present.  If the
+node at requested location is already exist do not recreate it and its
+parents.
+
+Make directories for each created node and call the function WRITEFN
+which is responsible to create data for the node.  The function should
+take two arguments: the created node, the current location.  The
+current location is the requested location LOC but in case of creation
+of parent nodes it has lower resolution (parent resolution).  If the
+root node is created the current location is NIL.
+
+Return the last created node.  If there is no one return NIL.")
+
+  (defcreate box
+      "Create nodes in the box [LOC1; LOC2].
 The dtree root is NODE.  If it does not exist create it.  Do not
 recreate any already created nodes.  Use the function WRITEFN to
-create nodes data.  The function WRITEFN should take two parameters:
-the directory of the currently created node and the parent location of
-the node.
+create nodes data.  The function WRITEFN should take the following
+arguments: the found node, its parent location and the box clipped by
+NODE (two locations).
 
 See also the macro `deftraverse-box'."
-  (writefn)
+    curloc kl1 kl2))
+
+(deftraverse-node find ()
+  "Find the node at the location LOC in the dtree NODE.
+Return two values: the found node and the requested location LOC.  If
+there is no any node at requested resolution (locat-r LOC) return the
+node at maximum available resolution and the location `resol''ed
+\(scaled) to the resolution."
   nil
-  (create-lowform curloc kl1 kl2)
-  (create-root-form))
+  (values curnode curloc)
+  (values curnode curloc))
 
-;; TODO The parameter FINDFN may be optional.  If it is nil then the
-;; function `find-nodes-box' collect and return a list of found nodes.
-(deftraverse-box find
-    "Find nodes in the box [LOC1; LOC2].
-
+;; TODO The parameter FINDFN should be optional.  If it is nil then
+;; the function `find-nodes-box' collect and return a list of found
+;; nodes.
+(deftraverse-box find (findfn &optional (lowfn findfn))
+  "Find nodes in the box [LOC1; LOC2].
 The dtree root is NODE.  At each found node call the function FINDFN.
 If the target resolution is not available call the optional function
 LOWFN.  Default value of LOWFN is equal to FINDFN.  The functions
-should take the following parameters: the found node, its parent
-location and its box (two locations).
+should take the following arguments: the found node, its parent
+location and the box clipped by NODE (two locations).
 
-See also the macro `deftraverse-box'.
-
-TODO Document kl1 kl2"
-  (findfn &optional (lowfn findfn))
+See also the macro `deftraverse-box'."
+  (progn (funcall lowfn nil nil nil nil) nil)
   (funcall findfn curnode
            (unless
                (pathname= node curnode) parentloc)

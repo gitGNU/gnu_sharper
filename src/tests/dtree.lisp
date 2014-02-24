@@ -103,30 +103,33 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
      (multiple-value-list (find-node "/tmp/root/" location)))))
 
 (deftest find-node-test1
-    (find-node-test (locat 4 1 2 3))
-  "/tmp/root/")
+ (find-node "/tmp/root/" location))
 
 (deftest find-node-test2
-    (find-node-test (locat 2 1 2 3))
-  "/tmp/root/")
+    (find-node-test (locat 4 1 2 3))
+  ("/tmp/root/" (4 1 2 3)))
 
 (deftest find-node-test3
+    (find-node-test (locat 2 1 2 3))
+  ("/tmp/root/" (2 1 2 3)))
+
+(deftest find-node-test4
     (find-node-test (locat 5 3 5 6))
   "/tmp/root/801/")
 
-(deftest find-node-test4
+(deftest find-node-test5
     (find-node-test (locat 7 10 17 25))
   "/tmp/root/801/")
 
-(deftest find-node-test5
+(deftest find-node-test6
     (find-node-test (locat 7 32 4 127))
   "/tmp/root/" (4 4 0 15))
 
-(deftest find-node-test6
+(deftest find-node-test7
     (find-node-test (locat 9 42 69 100))
   "/tmp/root/801/" (7 10 17 25))
 
-(deftest find-node-test7
+(deftest find-node-test8
     (find-node-test (locat 7 21 26 35))
   "/tmp/root/1074/22/")
 
@@ -3350,10 +3353,16 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 ;;; TODO The box is located in one kid of a kid. The box res is equal
 ;;; to the kid res.
 
+;;; FIXME Tests for `find-node' and `find-nodes-box' should use two
+;;; callbacks: findfn and lowfn.
 (let (nodes)
-  (defun found-node (node loc)
+  (defun found-node (node loc kl1 kl2)
     "TODO Docstring"
-    (push (list (namestring node) loc) nodes))
+    (push (list 'find (if node (namestring node)) loc kl1 kl2) nodes))
+
+  (defun low-node (node loc kl1 kl2)
+    "TODO Docstring"
+    (push (list 'low (if node (namestring node)) loc kl1 kl2) nodes))
 
   (defun reset-found-nodes ()
     "TODO Docstring"
@@ -3361,23 +3370,30 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
   (defun found-nodes ()
     "TODO Docstring"
-    (sort nodes #'string< :key #'car)))
+    (sort nodes #'string< :key #'cadr)))
 
 (defmacro with-found-nodes (&body body)
-    "TODO Docstring"
-    `(with-root
+  "TODO Docstring"
+  `(with-root
        (reset-found-nodes)
-       ,@body
-       (mapcar #'(lambda (x)
-                   (cons (namestring (car x)) (cdr x)))
-               (found-nodes))))
+     ,@body
+     (found-nodes)))
 
-;;; TODO Add test if we do not have the dtree
+;;; Root is not created
+(deftest find-nodes-box-test1
+    (progn
+      (reset-found-nodes)
+      (find-nodes-box (dtree-root)
+                      (locat 4  3 2 9)
+                      (locat 4 12 7 1)
+                      #'found-node
+                      #'low-node)
+      (found-nodes))
+  ((low nil nil nil nil)))
 
 ;;; The box resolution is equal to the root resolution
-;;; TODO `find-node' returns found nodes only if they at the target
-;;; resolution. Why here findfn always gets two args.
-(deftest find-nodes-box-test1
+;;; Do we should sort the box?
+(deftest find-nodes-box-test2
     (with-found-nodes
       (ensure-directories-exist (dtree-root))
       (write-node (dtree-root) 4 3)
@@ -3385,10 +3401,11 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                       (locat 4  3 2 9)
                       (locat 4 12 7 1)
                       #'found-node))
-  (("/tmp/root/" nil)))
+  ((find "/tmp/root/" nil (4 3 2 9) (4 12 7 1))))
 
 ;;; The box resolution is less than the root resolution
-(deftest find-nodes-box-test2
+;;; Do we should sort the box?
+(deftest find-nodes-box-test3
     (with-found-nodes
       (ensure-directories-exist (dtree-root))
       (write-node (dtree-root) 4 3)
@@ -3396,11 +3413,11 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                       (locat 2 0 0 2)
                       (locat 2 3 1 0)
                       #'found-node))
-  (("/tmp/root/" nil)))
+  ((find "/tmp/root/" nil (2 0 0 2) (2 3 1 0))))
 
 ;;; The box resolution is greater than the root resolution and
 ;;; there are no kids.
-(deftest-sort find-nodes-box-test3
+(deftest-sort find-nodes-box-test4
     (with-found-nodes
       (ensure-directories-exist (dtree-root))
       (write-node (dtree-root) 4 3)
@@ -3529,7 +3546,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
    ("/tmp/root/" (4 9 8 13)) ("/tmp/root/" (4 10 8 13))
    ("/tmp/root/" (4 11 8 13)) ("/tmp/root/" (4 12 8 13))))
 
-(defmacro deftest456 (num loc1 loc2)
+(defmacro deftest567 (num loc1 loc2)
   "TODO Docstring"
   `(deftest ,(symbolicate 'find-nodes-box-test (prin1-to-string num))
        (with-found-nodes
@@ -3700,16 +3717,16 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 ;;; There are kids at every location in the box and the box resolution
 ;;; is equal to the root+kids resolution
-(deftest456 4 (locat 7 7 65 111) (locat 7 100 9 92))
+(deftest567 5 (locat 7 7 65 111) (locat 7 100 9 92))
 
 ;;; There are kids at every location in the box and the box resolution
 ;;; is less than the root+kids resolution
-(deftest456 5 (locat 6 3 32 55) (locat 6 50 4 46))
+(deftest567 6 (locat 6 3 32 55) (locat 6 50 4 46))
 
 ;;; The box res > the root+kids res
-(deftest456 6 (locat 9 29 262 444) (locat 9 403 38 369))
+(deftest567 7 (locat 9 29 262 444) (locat 9 403 38 369))
 
-(defmacro deftest789 (num loc1 loc2)
+(defmacro deftest8910 (num loc1 loc2)
   "TODO Docstring"
   `(deftest ,(symbolicate 'find-nodes-box-test (prin1-to-string num))
        (with-found-nodes
@@ -3833,17 +3850,17 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 ;;; Some kids in the box are removed.  The box res = the root+kids
 ;;; res.
-(deftest789 7 (locat 7 0 80 19) (locat 7 38 127 60))
+(deftest8910 8 (locat 7 0 80 19) (locat 7 38 127 60))
 
 ;;; Some kids in the box are removed.  The box res < the root+kids
 ;;; res.
-(deftest789 8 (locat 5 0 20 4) (locat 5 9 31 15))
+(deftest8910 9 (locat 5 0 20 4) (locat 5 9 31 15))
 
 ;;; The box res > the root+kids res and some kids are removed
-(deftest789 9 (locat 9 1 323 76) (locat 9 154 510 241))
+(deftest8910 10 (locat 9 1 323 76) (locat 9 154 510 241))
 
 ;;; The box res = the root+kids res and some kids res < the box res
-(deftest find-nodes-box-test10
+(deftest find-nodes-box-test11
     (with-found-nodes
         (ensure-directories-exist (dtree-root))
       (write-node (dtree-root) 4 3)
@@ -3966,7 +3983,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 ;;; Tests with kids of kids of the dtree root
 
-(defmacro deftest111213 (num res)
+(defmacro deftest121314 (num res)
   "TODO Docstring"
   `(deftest ,(symbolicate 'find-nodes-box-test (prin1-to-string num))
        (with-found-nodes
@@ -4006,15 +4023,15 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 ;;; Kids of kids are all created in the box and the box res is
 ;;; less than kkres
-(deftest111213 11 4)
+(deftest121314 12 4)
 
 ;;; Kids of kids are all created in the box and the box res is
 ;;; equal to kkres
-(deftest111213 12 5)
+(deftest121314 13 5)
 
 ;;; Kids of kids are all created in the box and the box res is
 ;;; greater than kkres
-(deftest111213 13 7)
+(deftest121314 14 7)
 
 (defun create-kkr (l1 l2)
   "TODO Docstring"
@@ -4041,7 +4058,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                       (locat 4 3 15 7) (locat 4 4 15 7)))
 
 ;;; Some kids of root do not have kids
-(deftest find-nodes-box-test14
+(deftest find-nodes-box-test15
     (with-found-nodes
         (let ((l1 (locat 8 1 160 38))
               (l2 (locat 8 77 254 121)))
@@ -4353,7 +4370,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
    ("/tmp/root/2036/" (7 32 120 56))))
 
 ;;; Some kids of root have kids with resolution less than the box res
-(deftest find-nodes-box-test15
+(deftest find-nodes-box-test16
     (with-found-nodes
         (let ((l1 (locat 10 0 643 155))
               (l2 (locat 10 305 1018 480)))
@@ -4748,7 +4765,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 ;;; TODO Some kids of root have several kids with resolution less than the box
 ;;; res
-;; (deftest find-nodes-box-test16
+;; (deftest find-nodes-box-test17
 ;;     (with-found-nodes
 ;;         (let ((l1 (locat 10 0 640 152))
 ;;               (l2 (locat 10 319 1023 495))

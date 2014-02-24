@@ -33,7 +33,7 @@
 
 (defun make-pyramid-array (resolution dimensions &optional (initial-element 0))
   "Make an array."
-  (make-array (expt (ilength resolution) dimensions)
+  (make-array (expt (isize resolution) dimensions)
               :initial-element initial-element))
 
 (defun make-pyramid (&rest arrays)
