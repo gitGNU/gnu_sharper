@@ -87,11 +87,11 @@ dtree nodes which are should be created upon image write operations.")
 
 (defun temp-image (dir)
   "Return a temporary image pathname relative to DIR.
-If DIR does not exist return it.  In such a case, the temporary image
-become a new dtree root."
-  (if (directory-exists-p path)
-      (pathname-as-directory (dir+file path "tmp"))
-      path))
+If DIR does not exist return it.  In this case, the temporary image is
+a new dtree root."
+  (if (directory-exists-p dir)
+      (pathname-as-directory (dir+file dir "tmp"))
+      dir))
 
 (defun write-props (node)
   "Write properties for NODE."
@@ -101,18 +101,50 @@ become a new dtree root."
               (dir+file node *node-properties-filename*)
               :supersede))
 
-(defmacro with-tilevars (node loc parentloc k1 k2 &body body)
-  "Do BODY with tile variables: TILE, TILERES, TILELOC, BL1, BL2."
-  (with-gensyms (lres ploc gloc gnode)
+(defmacro with-tilevars (node loc parentloc kl1 kl2 &body body)
+  "Do BODY with tile variables: TILE{,RES,LOC,L1,L2}."
+  (with-gensyms (gnode nres lres ploc)
     `(let* ((,gnode ,node)
             (,lres (locat-r ,loc))
-            (,ploc ,parentloc)
-            (tileres (- ,lres (locat-r ,ploc)))
-            (,gloc (resol ,lres ,ploc))
-            (bl1 (move* ,gloc k1))
-            (bl2 (move* ,gloc k2)))
+            ,@(if parentloc
+                  `((,ploc ,parentloc)
+                    (tileres (- ,lres (locat-r ,ploc)))
+                    (tileloc (resol ,lres ,ploc)))
+                  `((,nres (node-resolution ,gnode))
+                    (tileres (if (< ,lres ,nres) ,lres ,nres))
+                    (tileloc (zeroloc tileres
+                                      (length (coord ,loc))))
+                    (,kl1 (resol tileres ,kl1))
+                    (,kl2 (resol tileres ,kl2))))
+            (tilel1 (move* tileloc ,kl1))
+            (tilel2 (move* tileloc ,kl2)))
        (symbol-macrolet ((tile (node-tile ,gnode ,lres)))
          ,@body))))
+
+(defmacro create-subtree (node parentloc loc1 l1 l2 form)
+  "Create subdtree in NODE. Location arguments must be symbols. TODO
+More doc."
+  (with-gensyms (nod ploc tmp rm kl1 kl2)
+   `(let* ((,tmp (temp-image ,node))
+           (,rm #'(lambda ()
+                      (delete-directory-and-files ,tmp))))
+      (create-nodes-box
+       ,tmp ,l1 ,l2
+       #'(lambda (,nod ,ploc ,kl1 ,kl2)
+           (write-props ,nod)
+           (with-tilevars ,nod ,loc1 ,parentloc ,@(if parentloc
+                                                      `(,kl1 ,kl2)
+                                                      `(,l1 ,l2))
+             (flet (((setf node-tile) (tile ,nod tileres)
+                      "Set tile and rename TMP to NODE's kid."
+                      (setf ,rm
+                            #'(lambda ()
+                                ;; TODO Remove empty nodes
+                                (move-dtree ,tmp ,node ,kl1))
+                            (node-tile ,nod tileres)
+                            tile)))
+               ,form))))
+      (funcall ,rm))))
 
 (defmacro walk-image-box (dtree loc1 loc2
                           &body (form1 &optional (form2 form1)))
@@ -138,32 +170,21 @@ is written as the tile's data.  If `setf' TILE to nil the tile's data
 is deleted."
   ;; TODO If TILE is deleted check the other tiles and kids of its
   ;; node.  If the node has no tiles and kids delete it.
-  (with-gensyms (gloc1 tmp node parentloc kl1 kl2 nodec kl1c rm)
-    `(let ((,gloc1 ,loc1))
+  (with-gensyms (gdtree gloc1 gloc2 node parentloc kl1 kl2 nodec rm)
+    `(let ((,gloc1 ,loc1)
+           (,gloc2 ,loc2)
+           (,gdtree ,dtree))
        (find-nodes-box
-        ,dtree ,gloc1 ,loc2
+        ,gdtree ,gloc1 ,gloc2
         #'(lambda (,node ,parentloc ,kl1 ,kl2)
             (with-tilevars ,node ,gloc1 ,parentloc ,kl1 ,kl2
               (if (file-exists-p (tile-file ,node tileres))
                   ,form1
                   ,form2)))
         #'(lambda (,node ,parentloc ,kl1 ,kl2)
-            (let* ((,tmp (temp-image ,node))
-                   (,rm #'(lambda ()
-                            (delete-directory-and-files ,tmp))))
-              (create-nodes-box
-               ,tmp ,kl1 ,kl2
-               #'(lambda (,nodec ,parentloc ,kl1c ,kl2)
-                   (write-props ,nodec)
-                   (with-tilevars ,nodec ,loc1 ,parentloc ,kl1c ,kl2
-                     (flet (((setf node-tile) (tile ,nodec tileres)
-                              "Set tile and rename TMP to NODE's kid."
-                             (setf ,rm #'(lambda ()
-                                           ;; TODO Remove empty nodes
-                                           (move-dtree ,tmp ,node ,kl1))
-                                   (node-tile ,nodec tileres) tile)))
-                       ,form2))))
-              (funcall ,rm)))))))
+            (create-subtree ,node ,parentloc ,gloc1 ,kl1 ,kl2 ,form2))
+        #'(lambda ()
+            (create-subtree ,gdtree nil ,gloc1 ,gloc1 ,gloc2 ,form2))))))
 
 ;; Description of VARS for `walk-image-box' binding of which is not
 ;; implemented yet.

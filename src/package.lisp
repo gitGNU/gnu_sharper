@@ -56,7 +56,7 @@
    #:ilength
    #:locat
    #:locat-r
-   #:locat-axes
+   #:coord
    #:resol
    #:walk-box
    #:map-axes
@@ -79,4 +79,9 @@
    #:create-nodes-box
    #:find-nodes-box
    ;; Image
-   #:walk-image-box))
+   #:walk-image-box
+   #:tile
+   #:tileres
+   #:tileloc
+   #:tilel1
+   #:tilel2))

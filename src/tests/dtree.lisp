@@ -747,7 +747,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 
 (defun write-test-node43 (node loc &optional (push-node t))
   (write-test-node node loc push-node
-                   (if (pathname-eq node (dtree-root))
+                   (if (pathname= node (dtree-root))
                        +default-test-res+
                        3)))
 
@@ -2177,7 +2177,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
 (defun write-test-node212 (node loc &optional (push-node t))
   (write-test-node node loc push-node
                    (if (or (pathname-eq node (dtree-root))
-                           (not (pathname-eq (sharper::dirup node) (dtree-root))))
+                           (not (pathname= (sharper::dirup node) (dtree-root))))
                        2
                        1)))
 
@@ -2282,7 +2282,7 @@ success but in SBCL `sb-ext:process-exit-code' returns 0."
                   (unless (member l locs :test #'equal)
                     (let ((node (format nil "~A~D/" root
                                         (sharper::kid-num root l))))
-                      (dotimes (i (expt (ilength (node-resolution node)) 3))
+                      (dotimes (i (expt (isize (node-resolution node)) 3))
                         (write-test-node (ensure-directories-exist
                                           (format nil "~A~D/" node i))
                                          nil nil res))))))))

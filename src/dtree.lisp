@@ -310,7 +310,7 @@ The macro is used to define two functions: `create-node' and
 See also `deftraverse' and `deftraverse-box'."
   `(deftraverse ,(symbolicate name '-node) (loc ,@args) ,doc ()
      ,noform
-     curnode
+     ,resform
      (let ((curloc (resol cures loc)))
        (if-kid curloc
                (traverse-kid it)
@@ -356,13 +356,13 @@ See also `walk-node-box', `deftraverse' and `deftraverse-node'."
 (macrolet ((defcreate (type doc &rest args)
              (let ((noform
                     '(progn (ensure-directories-exist node)
-                      (funcall writefn node nil)
+                      (funcall writefn node nil nil nil)
                       node))
                    (lowform
-                    '(traverse-kid
+                    `(traverse-kid
                       (let ((kid (kid-pathname curnode curloc)))
                         (ensure-directories-exist kid)
-                        (funcall writefn kid curloc)
+                        (funcall writefn kid curloc ,@args)
                         kid))))
                `(,(symbolicate 'deftraverse- type)
                   create
@@ -411,7 +411,7 @@ node at maximum available resolution and the location `resol''ed
 ;; TODO The parameter FINDFN should be optional.  If it is nil then
 ;; the function `find-nodes-box' collect and return a list of found
 ;; nodes.
-(deftraverse-box find (findfn &optional (lowfn findfn))
+(deftraverse-box find (findfn &optional (lowfn findfn) (nofn lowfn))
   "Find nodes in the box [LOC1; LOC2].
 The dtree root is NODE.  At each found node call the function FINDFN.
 If the target resolution is not available call the optional function
@@ -420,7 +420,7 @@ should take the following arguments: the found node, its parent
 location and the box clipped by NODE (two locations).
 
 See also the macro `deftraverse-box'."
-  (progn (funcall lowfn nil nil nil nil) nil)
+  (progn (funcall nofn) nil)
   (funcall findfn curnode
            (unless
                (pathname= node curnode) parentloc)

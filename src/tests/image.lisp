@@ -47,10 +47,10 @@ Each element of TILES is a cons (RES . VECTOR)"
       (walk-image-box "/tmp/root/" (locat 3 1 4 5) (locat 3 7 2 4)
         (push (list (vec2str tile)
                     tileres tileloc
-                    bl1 bl2)
+                    tilel1 tilel2)
               tiles))
-      tiles)
-  (nil 3 (3 0 0 0) (3 1 2 4) (3 7 4 5)))
+      (car tiles))
+  (nil 3 (3 0 0 0) (3 1 4 5) (3 7 2 4))) ; Do we need sorted box here?
 
 ;;; There is root node only
 (deftest walk-image-box-test2
