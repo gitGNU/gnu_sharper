@@ -106,45 +106,48 @@ a new dtree root."
   (with-gensyms (gnode nres lres ploc)
     `(let* ((,gnode ,node)
             (,lres (locat-r ,loc))
-            ,@(if parentloc
-                  `((,ploc ,parentloc)
-                    (tileres (- ,lres (locat-r ,ploc)))
-                    (tileloc (resol ,lres ,ploc)))
-                  `((,nres (node-resolution ,gnode))
-                    (tileres (if (< ,lres ,nres) ,lres ,nres))
-                    (tileloc (zeroloc tileres
-                                      (length (coord ,loc))))
-                    (,kl1 (resol tileres ,kl1))
-                    (,kl2 (resol tileres ,kl2))))
-            (tilel1 (move* tileloc ,kl1))
-            (tilel2 (move* tileloc ,kl2)))
-       (symbol-macrolet ((tile (node-tile ,gnode ,lres)))
-         ,@body))))
+            (,ploc ,parentloc)
+            (,nres (node-resolution ,gnode)))
+       (iflet* ,ploc
+           ((tileres (- ,lres (locat-r ,ploc))
+                     (if (< ,lres ,nres) ,lres ,nres))
+            (tileloc (resol ,lres ,ploc)
+                     (zeroloc tileres (length (coord ,loc))))
+            (,kl1 ,kl1
+                  (resol tileres ,kl1))
+            (,kl2 ,kl2
+                  (resol tileres ,kl2)))
+         (let ((tilel1 (move* tileloc ,kl1))
+               (tilel2 (move* tileloc ,kl2)))
+           (symbol-macrolet ((tile (node-tile ,gnode ,lres)))
+             ,@body))))))
 
 (defmacro create-subtree (node parentloc loc1 l1 l2 form)
   "Create subdtree in NODE. Location arguments must be symbols. TODO
 More doc."
   (with-gensyms (nod ploc tmp rm kl1 kl2)
-   `(let* ((,tmp (temp-image ,node))
-           (,rm #'(lambda ()
-                      (delete-directory-and-files ,tmp))))
-      (create-nodes-box
-       ,tmp ,l1 ,l2
-       #'(lambda (,nod ,ploc ,kl1 ,kl2)
-           (write-props ,nod)
-           (with-tilevars ,nod ,loc1 ,parentloc ,@(if parentloc
-                                                      `(,kl1 ,kl2)
-                                                      `(,l1 ,l2))
-             (flet (((setf node-tile) (tile ,nod tileres)
-                      "Set tile and rename TMP to NODE's kid."
-                      (setf ,rm
-                            #'(lambda ()
-                                ;; TODO Remove empty nodes
-                                (move-dtree ,tmp ,node ,kl1))
-                            (node-tile ,nod tileres)
-                            tile)))
-               ,form))))
-      (funcall ,rm))))
+    ;; FIXME The name of the temp tree should be tmp<kidnum> because
+    ;; we can create several temp trees in parallel.
+    `(let* ((,tmp (temp-image ,node))
+            (,rm #'(lambda ()
+                     (delete-directory-and-files ,tmp))))
+       (create-nodes-box
+        ,tmp ,l1 ,l2
+        #'(lambda (,nod ,ploc ,kl1 ,kl2)
+            (write-props ,nod)
+            (with-tilevars ,nod ,loc1 ,parentloc ,@(if parentloc
+                                                       `(,kl1 ,kl2)
+                                                       `(,l1 ,l2))
+                (flet (((setf node-tile) (tile ,nod tileres)
+                         "Set tile and rename TMP to NODE's kid."
+                        (setf ,rm
+                              #'(lambda ()
+                                  ;; TODO Remove empty nodes
+                                  (move-dtree ,tmp ,node ,kl1))
+                              (node-tile ,nod tileres)
+                              tile)))
+                  ,form))))
+       (funcall ,rm))))
 
 (defmacro walk-image-box (dtree loc1 loc2
                           &body (form1 &optional (form2 form1)))
@@ -170,7 +173,7 @@ is written as the tile's data.  If `setf' TILE to nil the tile's data
 is deleted."
   ;; TODO If TILE is deleted check the other tiles and kids of its
   ;; node.  If the node has no tiles and kids delete it.
-  (with-gensyms (gdtree gloc1 gloc2 node parentloc kl1 kl2 nodec rm)
+  (with-gensyms (gdtree gloc1 gloc2 node parentloc kl1 kl2 rm)
     `(let ((,gloc1 ,loc1)
            (,gloc2 ,loc2)
            (,gdtree ,dtree))

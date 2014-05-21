@@ -356,7 +356,7 @@ See also `walk-node-box', `deftraverse' and `deftraverse-node'."
 (macrolet ((defcreate (type doc &rest args)
              (let ((noform
                     '(progn (ensure-directories-exist node)
-                      (funcall writefn node nil nil nil)
+                      (funcall writefn node nil loc1 loc2)
                       node))
                    (lowform
                     `(traverse-kid

@@ -59,11 +59,14 @@
    #:coord
    #:resol
    #:walk-box
+   #:sort-box
    #:map-axes
    #:locat+
    #:locat-
    #:locat*
    #:locat/
+   #:move
+   #:move*
    ;; Pyramid
    #:make-pyramid
    #:save-pyramid
